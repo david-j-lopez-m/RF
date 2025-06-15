@@ -1,0 +1,19 @@
+{
+  "noaa_swpc": {
+    "url": "https://services.swpc.noaa.gov/products/alerts.json",
+    "requires_token": false,
+    "output_filename": "noaa_alerts.json",
+    "enabled": true,
+    "base_data_path": "data/alertas",
+    "timestamp_format": "%Y-%m-%d %H:%M:%S.%f"
+  },
+  "nasa_donki": {
+    "url": "https://kauai.ccmc.gsfc.nasa.gov/DONKI/WS/get/notifications",
+    "requires_token": false,
+    "output_filename": "nasa_donki_alerts.json",
+    "enabled": true,
+    "base_data_path": "data/alertas",
+    "timestamp_format": "%Y-%m-%dT%H:%MZ"
+  },
+  "base_data_path": "data/alertas"
+}
