@@ -21,3 +21,6 @@ def get_timestamp_format():
 
 def get_source_timestamp_format(source_key):
     return get_source_config(source_key).get("timestamp_format", get_timestamp_format())
+
+def get_token(source_key):
+    return get_source_config(source_key).get("token")

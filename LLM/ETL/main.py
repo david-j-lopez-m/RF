@@ -1,7 +1,10 @@
 import logging
 import os
 from fetchers.noaa_fetcher import NOAAFetcher
-from config import get_source_config
+from fetchers.usgs_earthquake_fetcher import USGSEarthquakeFetcher
+from fetchers.nasa_donki_fetcher import NASADONKIFetcher
+from fetchers.aemet_fetcher import AEMETFetcher
+from config import get_source_config, CONFIG
 
 def run_all_sources():
     # Configure logging
@@ -15,10 +18,10 @@ def run_all_sources():
         format='%(asctime)s [%(levelname)s] %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'
 )
-    # Determine which sources are enabled
+    # Determine which sources are enabled dynamically
     enabled_sources = [
-        source for source in ["noaa_swpc", "nasa_donki"]
-        if get_source_config(source).get("enabled", False)
+        source for source, cfg in CONFIG.items()
+        if isinstance(cfg, dict) and cfg.get("enabled", False)
     ]
     logging.info(f"Enabled sources for this run: {', '.join(enabled_sources) if enabled_sources else 'None'}")
 
@@ -29,10 +32,18 @@ def run_all_sources():
 
     if "nasa_donki" in enabled_sources:
         logging.info(f"Downloading data from NASA DONKI")
-        from fetchers.nasa_donki_fetcher import NASADONKIFetcher
         donki = NASADONKIFetcher()
         donki.fetch()
         
+    if "usgs_earthquakes" in enabled_sources:
+        logging.info(f"Downloading data from USGS EARTHQUAKES")
+        usgs = USGSEarthquakeFetcher()
+        usgs.fetch()
+        
+    if "aemet" in enabled_sources:
+        logging.info(f"Downloading data from AEMET")
+        aemet =AEMETFetcher()
+        aemet.fetch()
 
 if __name__ == "__main__":
     run_all_sources()

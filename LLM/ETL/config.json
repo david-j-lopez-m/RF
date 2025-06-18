@@ -15,5 +15,21 @@
     "base_data_path": "data/alertas",
     "timestamp_format": "%Y-%m-%dT%H:%MZ"
   },
-  "base_data_path": "data/alertas"
+  "usgs_earthquakes": {
+    "url": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson",
+    "requires_token": false,
+    "output_filename": "usgs_earthquakes.json",
+    "enabled": true,
+    "base_data_path": "data/alertas",
+    "timestamp_format": "%Y-%m-%dT%H:%M:%S.%fZ"
+  },
+  "aemet": {
+    "url": "https://opendata.aemet.es/opendata/api/avisos_cap/ultimoelaborado/area/esp",
+    "requires_token": true,
+    "token": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkYXZpempAZ21haWwuY29tIiwianRpIjoiMzY4ZDkxM2QtZTkzNi00ZTg2LWJiYTYtZThiMWVlYjdjYWFmIiwiaXNzIjoiQUVNRVQiLCJpYXQiOjE3NTAyNzYwMjcsInVzZXJJZCI6IjM2OGQ5MTNkLWU5MzYtNGU4Ni1iYmE2LWU4YjFlZWI3Y2FhZiIsInJvbGUiOiIifQ.F8sSv8fJGfdETYmhsQrlVK6_27lBPt5qujffhWswLzA",
+    "output_filename": "aemet_alerts.json",
+    "enabled": true,
+    "base_data_path": "data/alertas",
+    "timestamp_format": "%Y-%m-%dT%H:%M:%S%z"
+  }
 }
