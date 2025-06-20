@@ -5,3 +5,4 @@ data/
 # Logs
 *.log
 logs/
+LLM/ETL/config.json
