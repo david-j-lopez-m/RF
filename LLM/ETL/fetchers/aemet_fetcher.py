@@ -23,6 +23,7 @@ from config import get_source_config, get_source_timestamp_format
 import tarfile
 import tempfile
 import xml.etree.ElementTree as ET
+import shutil
 
 
 class AEMETFetcher:
@@ -87,6 +88,14 @@ class AEMETFetcher:
                 logging.info(f"[AEMET] Saved {len(new_alerts)} alerts to {self.output}")
             else:
                 logging.info("[AEMET] No new alerts to save.")
+
+            # Clean up extracted XML directory and downloaded tar file
+            try:
+                shutil.rmtree(extract_path)
+                os.remove(tar_path)
+            except Exception as cleanup_err:
+                logging.warning(f"[AEMET] Cleanup failed: {cleanup_err}")
+
         except Exception as e:
             status = getattr(e.response, 'status_code', 'N/A') if hasattr(e, 'response') else 'N/A'
             logging.error(
