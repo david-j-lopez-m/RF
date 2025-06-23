@@ -24,24 +24,27 @@ from config import get_source_config, get_source_timestamp_format
 class GDACSFetcher:
     """Fetcher class to retrieve GDACS alerts and store them locally."""
 
-    def __init__(self):
-        """Initialize GDACSFetcher with configuration settings.
-
-        Retrieves the URL and output filename from the source configuration.
+    def __init__(self, config=None, source_key="gdacs"):
+        """Initialize GDACSFetcher with configuration.
+            
+            Args:
+                config (dict): Optional global config dictionary. If None, it will use get_source_config.
+                source_key (str): Key identifying the source in config.
         """
-        self.config = get_source_config("gdacs")
+        # Allow passing a preloaded config or fallback to get_source_config
+        self.source_key = source_key
+        self.config = config[source_key] if config and source_key in config else get_source_config(source_key)
         self.url = self.config["url"]
         self.output = self.config["output_filename"]
-        self.timestamp_format = get_source_timestamp_format("gdacs")
+        self.timestamp_format = get_source_timestamp_format(source_key)
+        self.unique_key = self.config.get("unique_key")
+
 
     def fetch(self):
         """
         Fetches GDACS alerts from the configured XML RSS feed, extracts relevant fields,
-        filters new alerts by event datetime, and saves them as JSON.
-        Keeps a record of the last processed timestamp to avoid duplicates.
+        and saves them as JSON. Deduplication is handled by save_json via unique_key.
         """
-
-
         try:
             r = requests.get(self.url, timeout=10)
             status_code = r.status_code
@@ -95,35 +98,10 @@ class GDACSFetcher:
                 except Exception as e:
                     logging.warning(f"[GDACS] Skipping malformed alert: {e}")
 
-            # Load last processed timestamp to filter duplicates
-            ts_path = Path("data/alertas/gdacs_last_timestamp.txt")
-            last_ts = None
-            if ts_path.exists():
-                try:
-                    with ts_path.open("r") as f:
-                        last_ts = datetime.strptime(f.read().strip(), self.timestamp_format)
-                except Exception as e:
-                    logging.warning(f"[GDACS] Failed to read last timestamp: {e}")
-
-            # Filter only new alerts by event_datetime
-            filtered_alerts = []
-            for alert in new_alerts:
-                try:
-                    if alert["event_datetime"]:
-                        alert_ts = datetime.strptime(alert["event_datetime"], self.timestamp_format)
-                        if not last_ts or alert_ts > last_ts:
-                            filtered_alerts.append(alert)
-                except Exception as e:
-                    logging.warning(f"[GDACS] Skipping alert with invalid timestamp: {e}")
-
-            # Save filtered alerts and update latest timestamp
-            if filtered_alerts:
-                save_json(filtered_alerts, self.output)
-                logging.info(f"[GDACS] Fetched {len(filtered_alerts)} new alerts from {self.url} | Status: {status_code}")
-                latest_ts = max(datetime.strptime(a["event_datetime"], self.timestamp_format) for a in filtered_alerts)
-                ts_path.parent.mkdir(parents=True, exist_ok=True)
-                ts_path.write_text(latest_ts.strftime(self.timestamp_format))
-                logging.info(f"[GDACS] Saved latest timestamp: {latest_ts}")
+            # Save all alerts (deduplication by unique_key in save_json)
+            if new_alerts:
+                save_json(new_alerts, self.output, source_key=self.source_key, unique_key=self.unique_key)
+                logging.info(f"[GDACS] Fetched {len(new_alerts)} alerts from {self.url} | Status: {status_code}")
             else:
                 logging.info(f"[GDACS] No new alerts to save from {self.url}")
 

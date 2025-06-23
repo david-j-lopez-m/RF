@@ -3,8 +3,7 @@ firms_fetcher.py
 
 Fetcher class to retrieve wildfire alerts from NASA FIRMS (Fire Information for Resource Management System).
 - Sends a GET request to the NASA FIRMS CSV endpoint.
-- Parses the CSV and stores new wildfire events as JSON, grouped by date.
-- Saves the latest timestamp for incremental fetches.
+- Parses the CSV and stores wildfire events as JSON, grouped by date.
 """
 
 import requests
@@ -13,15 +12,23 @@ from pathlib import Path
 from datetime import datetime, timezone
 import pandas as pd
 import io
+import hashlib
 from utils import save_json
 from config import get_source_config, get_source_timestamp_format
 
 class FIRMSFetcher:
     """Fetcher class to retrieve and store NASA FIRMS wildfire alerts from CSV."""
 
-    def __init__(self):
-        """Initialize FIRMSFetcher with configuration."""
-        self.config = get_source_config("firms")
+    def __init__(self, config=None, source_key="firms"):
+        """Initialize FIRMSFetcher with configuration.
+            
+            Args:
+                config (dict): Optional global config dictionary. If None, it will use get_source_config.
+                source_key (str): Key identifying the source in config.
+        """
+        # Allow passing a preloaded config or fallback to get_source_config
+        self.source_key = source_key
+        self.config = config[source_key] if config and source_key in config else get_source_config(source_key)
         self.url_template = self.config["url_template"]
         self.map_key = self.config["MAP_KEY"]
         self.source = self.config["SOURCE"]
@@ -29,11 +36,12 @@ class FIRMSFetcher:
         self.output = self.config["output_filename"]
         self.base_data_path = self.config.get("base_data_path", "data/alertas")
         self.timestamp_format = get_source_timestamp_format("firms")
+        self.unique_key = self.config.get("unique_key", "identifier")
 
     def fetch(self):
         """
         Fetch FIRMS wildfire alerts from CSV, parse, and save as JSON.
-        Only new alerts (after last timestamp) are stored.
+        All alerts from the current fetch are stored.
         """
         try:
             # Build the API URL using config and template
@@ -51,41 +59,17 @@ class FIRMSFetcher:
                 logging.info("[FIRMS] No data found in CSV.")
                 return
 
-            # Load last processed timestamp for incremental updates
-            ts_path = Path(self.base_data_path) / "firms_last_timestamp.txt"
-            last_ts = None
-            if ts_path.exists():
-                with ts_path.open("r") as f:
-                    last_ts = datetime.strptime(f.read().strip(), self.timestamp_format)
-
-            new_alerts = []
-            latest_ts = last_ts
+            alerts = []
 
             for _, row in df.iterrows():
                 alert = self.parse_alert(row)
-                event_datetime = alert.get("event_datetime")
-                try:
-                    alert_ts = datetime.strptime(event_datetime, self.timestamp_format)
-                    if not last_ts or alert_ts > last_ts:
-                        new_alerts.append(alert)
-                        if not latest_ts or alert_ts > latest_ts:
-                            latest_ts = alert_ts
-                except Exception as e:
-                    logging.warning(f"[FIRMS] Skipping alert with invalid timestamp: {e}")
+                alerts.append(alert)
 
-            if new_alerts:
-                now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-                out_dir = Path(self.base_data_path) / now_str
-                out_dir.mkdir(parents=True, exist_ok=True)
-                #out_path = out_dir / self.output
-                save_json(new_alerts, self.output)
-                logging.info(f"[FIRMS] Fetched {len(new_alerts)} new wildfire alerts from {url}")
-                # Save latest timestamp if new alerts fetched
-                if latest_ts:
-                    ts_path.parent.mkdir(parents=True, exist_ok=True)
-                    ts_path.write_text(latest_ts.strftime(self.timestamp_format))
+            if alerts:
+                save_json(alerts, self.output, source_key=self.source_key, unique_key=self.unique_key)
+                logging.info(f"[FIRMS] Fetched and saved {len(alerts)} wildfire alerts from {url}")
             else:
-                logging.info(f"[FIRMS] No new wildfire alerts to save from {url}")
+                logging.info(f"[FIRMS] No wildfire alerts to save from {url}")
 
         except Exception as e:
             logging.error(f"[FIRMS] Error fetching from {url} | Exception: {e}")
@@ -101,11 +85,10 @@ class FIRMSFetcher:
         Returns:
             dict: Parsed alert fields.
         """
-        # event_datetime is a combination of acq_date and acq_time (format: %Y-%m-%d %H%M)
         acq_date = str(row.get('acq_date', ''))
         acq_time = str(row.get('acq_time', ''))
         event_datetime = f"{acq_date} {acq_time}"
-        return {
+        alert = {
             "event_datetime": event_datetime,
             "latitude": row.get("latitude"),
             "longitude": row.get("longitude"),
@@ -117,3 +100,13 @@ class FIRMSFetcher:
             "frp": row.get("frp"),
             "alert_type": "wildfire"
         }
+        # Añade el campo único
+        alert["firms_id"] = FIRMSFetcher.generate_firms_id(row)
+        return alert
+    
+    @staticmethod
+    def generate_firms_id(row):
+        """Generate a unique ID for FIRMS alerts using key fields."""
+        # Use latitude, longitude, acq_date, acq_time as unique key
+        key_str = f"{row.get('latitude','')}_{row.get('longitude','')}_{row.get('acq_date','')}_{row.get('acq_time','')}"
+        return hashlib.md5(key_str.encode()).hexdigest()

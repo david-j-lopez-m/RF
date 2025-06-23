@@ -9,8 +9,8 @@ def load_config():
 
 CONFIG = load_config()
 
-def get_base_path():
-    raw_path = CONFIG.get("base_data_path", "./data/alertas")
+def get_base_path(source_key):
+    raw_path = CONFIG[source_key]["base_data_path"]
     return pathlib.Path(__file__).parent.parent.parent / raw_path
 
 def get_source_config(source_key):

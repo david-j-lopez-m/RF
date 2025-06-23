@@ -4,13 +4,10 @@ USGS Earthquake Alerts Fetcher
 This script defines a fetcher class to retrieve recent earthquake alerts from the USGS (United States Geological Survey)
 GeoJSON feed. It performs the following tasks:
 - Sends a GET request to the configured USGS endpoint.
-- Parses and filters earthquake alerts based on timestamp to avoid duplicates.
 - Extracts and structures key earthquake fields (datetime, location, magnitude, depth, etc.).
-- Saves new structured alerts in JSON format to a local file.
-- Logs all relevant events including success, failure, and filtering decisions.
-- Stores the most recent timestamp in a text file for future runs.
-
-Intended to be called from a main controller script managing multiple data sources.
+- Saves structured alerts in JSON format to a local file.
+- Logs all relevant events including success and failure.
+- Intended to be called from a main controller script managing multiple data sources.
 """
 
 import requests
@@ -23,56 +20,45 @@ from config import get_source_config, get_source_timestamp_format
 class USGSEarthquakeFetcher:
     """Fetcher class to retrieve USGS earthquake alerts and store them locally."""
 
-    def __init__(self):
-        """Initialize USGSEarthquakeFetcher with configuration settings."""
-        self.config = get_source_config("usgs_earthquakes")
+    def __init__(self, config=None, source_key="usgs_earthquakes"):
+        """Initialize USGSEarthquakeFetcher with configuration.
+            
+            Args:
+                config (dict): Optional global config dictionary. If None, it will use get_source_config.
+                source_key (str): Key identifying the source in config.
+        """
+        # Allow passing a preloaded config or fallback to get_source_config
+        self.source_key = source_key
+        self.config = config[source_key] if config and source_key in config else get_source_config(source_key)
         self.url = self.config["url"]
         self.output = self.config["output_filename"]
-        self.timestamp_format = get_source_timestamp_format("usgs_earthquakes")
+        self.timestamp_format = get_source_timestamp_format(source_key)
+        self.unique_key = self.config.get("unique_key")
 
     def fetch(self):
-        """Fetch USGS earthquake alerts and save new structured entries to a JSON file."""
+        """Fetch USGS earthquake alerts and save structured entries to a JSON file."""
         try:
             r = requests.get(self.url, timeout=10)
             status_code = r.status_code
             r.raise_for_status()
             data = r.json()
 
-            # Load last processed timestamp
-            ts_path = Path(self.config.get("last_timestamp_path", "data/alertas/usgs_earthquakes_last_timestamp.txt"))
-            last_ts = None
-            if ts_path.exists():
-                with ts_path.open("r") as f:
-                    last_ts = datetime.strptime(f.read().strip(), "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
-
-            # Filter and parse new alerts
-            new_alerts = []
+            # Parse all alerts
+            alerts = []
             for feature in data.get("features", []):
                 try:
-                    alert_ts = datetime.fromtimestamp(feature["properties"]["time"] / 1000.0, tz=timezone.utc)
-                    if not last_ts or alert_ts > last_ts:
-                        parsed = self.parse_feature(feature)
-                        new_alerts.append(parsed)
+                    parsed = self.parse_feature(feature)
+                    alerts.append(parsed)
                 except Exception as e:
-                    logging.warning(f"[USGS] Skipping alert with invalid timestamp: {e}")
+                    logging.warning(f"[USGS] Skipping alert due to parsing error: {e}")
 
-            if new_alerts:
-                save_json(new_alerts, self.output)
+            if alerts:
+                save_json(alerts, self.output, source_key=self.source_key, unique_key=self.unique_key)
                 logging.info(
-                    f"[USGS] Fetched {len(new_alerts)} new structured alerts from {self.url} | Status: {status_code}"
+                    f"[USGS] Fetched and saved {len(alerts)} structured alerts from {self.url} | Status: {status_code}"
                 )
-
-                # Save latest timestamp
-                latest_ts = max(
-                    datetime.fromtimestamp(feature["properties"]["time"] / 1000.0, tz=timezone.utc)
-                    for feature in data.get("features", [])
-                )
-                ts_path.parent.mkdir(parents=True, exist_ok=True)
-                # Cuando guardas el latest_ts
-                ts_path.write_text(latest_ts.strftime("%Y-%m-%dT%H:%M:%SZ"))  # ISO 8601 UTC
-                logging.info(f"[USGS] Saved latest timestamp: {latest_ts}")
             else:
-                logging.info(f"[USGS] No new alerts to save from {self.url}")
+                logging.info(f"[USGS] No alerts to save from {self.url}")
         except Exception as e:
             status = getattr(e.response, 'status_code', 'N/A') if hasattr(e, 'response') else 'N/A'
             logging.error(

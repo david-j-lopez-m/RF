@@ -23,15 +23,20 @@ from config import get_source_config, get_source_timestamp_format
 class MeteoalarmFetcher:
     """Fetcher class to retrieve Meteoalarm alerts and store them locally."""
 
-    def __init__(self):
-        """Initialize MeteoalarmFetcher with configuration settings.
-
-        Retrieves the URL and output filename from the source configuration.
+    def __init__(self, config=None, source_key="meteoalarm"):
+        """Initialize MeteoalarmFetcher with configuration.
+            
+            Args:
+                config (dict): Optional global config dictionary. If None, it will use get_source_config.
+                source_key (str): Key identifying the source in config.
         """
-        self.config = get_source_config("meteoalarm")
+        # Allow passing a preloaded config or fallback to get_source_config
+        self.source_key = source_key
+        self.config = config[source_key] if config and source_key in config else get_source_config(source_key)
         self.url = self.config["url"]
         self.output = self.config["output_filename"]
-        self.timestamp_format = get_source_timestamp_format("meteoalarm")
+        self.timestamp_format = get_source_timestamp_format(source_key)
+        self.unique_key = self.config.get("unique_key")
 
     def fetch(self):
         """Fetch Meteoalarm alerts from the configured URL and save them to a JSON file.
@@ -47,7 +52,7 @@ class MeteoalarmFetcher:
             channel = root.find("channel")
             items = channel.findall("item") if channel is not None else []
 
-            new_alerts = []
+            alerts = []
             for item in items:
                 try:
                     title = item.find("title").text
@@ -63,45 +68,15 @@ class MeteoalarmFetcher:
                         "link": link,
                         "guid": guid
                     }
-                    new_alerts.append(alert)
+                    alerts.append(alert)
                 except Exception as e:
                     logging.warning(f"[METEOALARM] Skipping malformed alert element: {e}")
 
-            # Load last processed timestamp
-            ts_path = Path("data/alertas/meteoalarm_last_timestamp.txt")
-            last_ts = None
-            if ts_path.exists():
-                try:
-                    with ts_path.open("r") as f:
-                        last_ts = datetime.strptime(f.read().strip(), self.timestamp_format)
-                except Exception as e:
-                    logging.warning(f"[METEOALARM] Failed to read last timestamp: {e}")
-
-            # Filter new alerts
-            filtered_alerts = []
-            for alert in new_alerts:
-                try:
-                    alert_ts = datetime.strptime(alert["pubDate"], self.timestamp_format)
-                    if not last_ts or alert_ts > last_ts:
-                        filtered_alerts.append(alert)
-                except Exception as e:
-                    logging.warning(f"[METEOALARM] Skipping alert with invalid timestamp: {e}")
-
-            # Save filtered alerts
-            if filtered_alerts:
-                save_json(filtered_alerts, self.output)
-                logging.info(f"[METEOALARM] Fetched {len(filtered_alerts)} new alerts from {self.url} | Status: {response.status_code}")
-
-                # Save latest timestamp
-                latest_ts = max(
-                    datetime.strptime(alert["pubDate"], self.timestamp_format)
-                    for alert in filtered_alerts
-                )
-                ts_path.parent.mkdir(parents=True, exist_ok=True)
-                ts_path.write_text(latest_ts.strftime(self.timestamp_format))
-                logging.info(f"[METEOALARM] Saved latest timestamp: {latest_ts}")
+            if alerts:
+                save_json(alerts, self.output, source_key=self.source_key, unique_key=self.unique_key)
+                logging.info(f"[METEOALARM] Fetched {len(alerts)} alerts from {self.url} | Status: {response.status_code}")
             else:
-                logging.info(f"[METEOALARM] No new alerts to save from {self.url}")
+                logging.info(f"[METEOALARM] No alerts found at {self.url}")
 
         except Exception as e:
             status = getattr(e.response, 'status_code', 'N/A') if hasattr(e, 'response') else 'N/A'

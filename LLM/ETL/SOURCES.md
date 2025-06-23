@@ -76,10 +76,10 @@ This document describes the data sources used for retrieving meteorological, geo
 
 ---
 
-## 8. EFFIS – European Forest Fire Information System
+## 8. FIRMS – Fire Information for Resource Management System (NASA)
 
-- **URL**: https://effis.jrc.ec.europa.eu
-- **Type**: Forest fire danger levels, active fire alerts
-- **Format**: GeoJSON (internal), maps with risk classification
-- **Auth**: Not required
-- **Notes**: Can be used to create fire danger forecasts and LLM prompts for forest areas.
+- **URL**: https://firms.modaps.eosdis.nasa.gov/
+- **Type**: Active fires detected by satellite (MODIS, VIIRS)
+- **Format**: CSV (converted to JSON)
+- **Authentication**: ✅ Required (API Key from NASA Earthdata)
+- **Notes**: Global fire alerts with satellite-derived timestamps, location, and fire radiative power. Useful for real-time wildfire monitoring and LLM training.

@@ -24,12 +24,64 @@ import requests
 class NOAAFetcher:
     """Fetcher class to retrieve NOAA space weather alerts and save them locally."""
 
-    def __init__(self):
-        """Initialize NOAAFetcher with configuration settings."""
-        self.config = get_source_config("noaa_swpc")
-        self.url = self.config.get("url")
+    def __init__(self, config=None, source_key="noaa_swpc"):
+        """Initialize NOAAFetcher with configuration.
+            
+            Args:
+                config (dict): Optional global config dictionary. If None, it will use get_source_config.
+                source_key (str): Key identifying the source in config.
+        """
+        # Allow passing a preloaded config or fallback to get_source_config
+        self.source_key = source_key
+        self.config = config[source_key] if config and source_key in config else get_source_config(source_key)
+        self.url = self.config["url"]
         self.output = self.config["output_filename"]
-        self.timestamp_format = get_source_timestamp_format("noaa_swpc")
+        self.timestamp_format = get_source_timestamp_format(source_key)
+        self.unique_key = self.config.get("unique_key")
+
+
+    def fetch(self):
+        """Fetch NOAA alerts from the configured URL, parse message fields, and save to a JSON file."""
+        try:
+            r = requests.get(self.url, timeout=10)
+            status_code = r.status_code
+            r.raise_for_status()
+            data = r.json()
+
+            # Parse and enrich alerts
+            new_alerts = []
+            for alert in data:
+                try:
+                    # Parse the message field and enrich the alert
+                    parsed = self.parse_message(alert["message"])
+                    enriched_alert = {
+                        "product_id": alert.get("product_id", ""),
+                        "issue_datetime": alert.get("issue_datetime", ""),
+                        "message": alert.get("message", ""),
+                        # Enriched fields:
+                        "alert_type": parsed["alert_type"],
+                        "k_index": parsed["k_index"],
+                        "valid_from": parsed["valid_from"],
+                        "valid_to": parsed["valid_to"],
+                        "impacts": parsed["impacts"],
+                    }
+                    new_alerts.append(enriched_alert)
+                except Exception as e:
+                    logging.warning(f"[NOAA] Skipping alert with invalid timestamp: {e}")
+
+            if new_alerts:
+                save_json(new_alerts, self.output, source_key=self.source_key, unique_key=self.unique_key)
+                logging.info(
+                    f"[NOAA] Fetched {len(new_alerts)} alerts from {self.url} | Status: {status_code}"
+                )
+            else:
+                logging.info(f"[NOAA] No alerts to save from {self.url}")
+
+        except Exception as e:
+            status = getattr(e.response, 'status_code', 'N/A') if hasattr(e, 'response') else 'N/A'
+            logging.error(
+                f"[NOAA] Error fetching from {self.url} | Status: {status} | Exception: {e}"
+            )
 
     @staticmethod
     def parse_message(message):
@@ -79,64 +131,3 @@ class NOAAFetcher:
             "valid_to": valid_to,
             "impacts": impacts,
         }
-
-    def fetch(self):
-        """Fetch NOAA alerts from the configured URL, parse message fields, and save to a JSON file."""
-        try:
-            r = requests.get(self.url, timeout=10)
-            status_code = r.status_code
-            r.raise_for_status()
-            data = r.json()
-
-            # Load last processed timestamp
-            ts_path = Path(self.config.get("last_timestamp_path", "data/alertas/noaa_last_timestamp.txt"))
-            last_ts = None
-            if ts_path.exists():
-                with ts_path.open("r") as f:
-                    last_ts = datetime.strptime(f.read().strip(), self.timestamp_format + " UTC")
-
-            # Filter and parse new alerts
-            new_alerts = []
-            for alert in data:
-                try:
-                    alert_ts = datetime.strptime(alert["issue_datetime"], self.timestamp_format)
-                    if not last_ts or alert_ts > last_ts:
-                        # Parse the message field and enrich the alert
-                        parsed = self.parse_message(alert["message"])
-                        enriched_alert = {
-                            "product_id": alert.get("product_id", ""),
-                            "issue_datetime": alert.get("issue_datetime", ""),
-                            "message": alert.get("message", ""),
-                            # Enriched fields:
-                            "alert_type": parsed["alert_type"],
-                            "k_index": parsed["k_index"],
-                            "valid_from": parsed["valid_from"],
-                            "valid_to": parsed["valid_to"],
-                            "impacts": parsed["impacts"],
-                        }
-                        new_alerts.append(enriched_alert)
-                except Exception as e:
-                    logging.warning(f"[NOAA] Skipping alert with invalid timestamp: {e}")
-
-            if new_alerts:
-                save_json(new_alerts, self.output)
-                logging.info(
-                    f"[NOAA] Fetched {len(new_alerts)} new alerts from {self.url} | Status: {status_code}"
-                )
-
-                # Save latest timestamp
-                latest_ts = max(
-                    datetime.strptime(alert["issue_datetime"], self.timestamp_format)
-                    for alert in new_alerts
-                )
-                ts_path.parent.mkdir(parents=True, exist_ok=True)
-                ts_path.write_text(latest_ts.strftime(self.timestamp_format + " UTC"))
-                logging.info(f"[NOAA] Saved latest timestamp: {latest_ts}")
-            else:
-                logging.info(f"[NOAA] No new alerts to save from {self.url}")
-
-        except Exception as e:
-            status = getattr(e.response, 'status_code', 'N/A') if hasattr(e, 'response') else 'N/A'
-            logging.error(
-                f"[NOAA] Error fetching from {self.url} | Status: {status} | Exception: {e}"
-            )

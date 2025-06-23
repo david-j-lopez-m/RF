@@ -4,66 +4,82 @@
     "requires_token": false,
     "output_filename": "noaa_alerts.json",
     "enabled": true,
-    "base_data_path": "data/alertas",
-    "timestamp_format": "%Y-%m-%d %H:%M:%S.%f"
+    "base_data_path": "data/alerts",
+    "last_timestamp_path": "noaa_last_timestamp.txt",
+    "timestamp_format": "%Y-%m-%d %H:%M:%S.%f",
+    "unique_key": "product_id"
   },
   "nasa_donki": {
     "url": "https://kauai.ccmc.gsfc.nasa.gov/DONKI/WS/get/notifications",
     "requires_token": false,
     "output_filename": "nasa_donki_alerts.json",
-    "enabled": true,
-    "base_data_path": "data/alertas",
-    "timestamp_format": "%Y-%m-%dT%H:%MZ"
+    "enabled": false,
+    "base_data_path": "data/alerts",
+    "last_timestamp_path": "nasa_donki_last_timestamp.txt",
+    "timestamp_format": "%Y-%m-%dT%H:%MZ",
+    "unique_key": "message_id"
   },
   "usgs_earthquakes": {
     "url": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson",
     "requires_token": false,
     "output_filename": "usgs_earthquakes.json",
-    "enabled": true,
-    "base_data_path": "data/alertas",
-    "timestamp_format": "%Y-%m-%dT%H:%M:%S.%fZ"
+    "enabled": false,
+    "base_data_path": "data/alerts",
+    "last_timestamp_path": "usgs_earthquakes_last_timestamp.txt",
+    "timestamp_format": "%Y-%m-%dT%H:%M:%S.%fZ",
+    "unique_key": "ids"
   },
   "aemet": {
     "url": "https://opendata.aemet.es/opendata/api/avisos_cap/ultimoelaborado/area/esp",
     "requires_token": true,
     "token": "API_TOKEN_HERE",
     "output_filename": "aemet_alerts.json",
-    "enabled": true,
-    "base_data_path": "data/alertas",
-    "timestamp_format": "%Y-%m-%dT%H:%M:%S%z"
+    "enabled": false,
+    "base_data_path": "data/alerts",
+    "last_timestamp_path": "aemet_last_timestamp.txt",
+    "timestamp_format": "%Y-%m-%dT%H:%M:%S%z",
+    "unique_key": "identifier"
   },
   "ign": {
     "url": "http://www.ign.es/ign/RssTools/sismologia.xml",
     "requires_token": false,
     "output_filename": "ign_alerts.json",
     "enabled": true,
-    "base_data_path": "data/alertas",
-    "timestamp_format": "%d/%m/%Y %H:%M:%S"
+    "base_data_path": "data/alerts",
+    "last_timestamp_path": "ign_last_timestamp.txt",
+    "timestamp_format": "%d/%m/%Y %H:%M:%S",
+    "unique_key": "event_datetime"
   },
   "meteoalarm": {
     "url": "https://feeds.meteoalarm.org/feeds/meteoalarm-legacy-rss-europe",
     "requires_token": false,
     "output_filename": "meteoalarm_alerts.json",
-    "enabled": true,
-    "base_data_path": "data/alertas",
-    "timestamp_format": "%a, %d %b %y %H:%M:%S %z"
+    "enabled": false,
+    "base_data_path": "data/alerts",
+    "last_timestamp_path": "meteoalarm_last_timestamp.txt",
+    "timestamp_format": "%a, %d %b %y %H:%M:%S %z",
+    "unique_key": "guid"
   },
   "gdacs": {
     "url": "https://www.gdacs.org/xml/rss.xml",
     "requires_token": false,
     "output_filename": "gdacs_alerts.json",
-    "enabled": true,
-    "base_data_path": "data/alertas",
-    "timestamp_format": "%a, %d %b %Y %H:%M:%S %Z"
+    "enabled": false,
+    "base_data_path": "data/alerts",
+    "last_timestamp_path": "gdacs_last_timestamp.txt",
+    "timestamp_format": "%a, %d %b %Y %H:%M:%S %Z",
+    "unique_key": "event_datetime"
   },
   "firms": {
-      "enabled": true,
+      "enabled": false,
       "url_template": "https://firms.modaps.eosdis.nasa.gov/api/area/csv/{MAP_KEY}/{SOURCE}/world/{DAY_RANGE}",
       "MAP_KEY": "API_KEY_HERE",
       "SOURCE": "MODIS_NRT",
       "DAY_RANGE": 1,
       "output_filename": "firms_modis_nrt.json",
-      "base_data_path": "data/alertas",
-      "timestamp_format": "%Y-%m-%d %H%M"
+      "base_data_path": "data/alerts",
+      "last_timestamp_path": "firms_last_timestamp.txt",
+      "timestamp_format": "%Y-%m-%d %H%M",
+      "unique_key": "firms_id"
   }
 }

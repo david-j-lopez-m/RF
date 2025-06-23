@@ -28,14 +28,23 @@ import xml.etree.ElementTree as ET
 class AEMETFetcher:
     """Fetcher class to retrieve AEMET weather alerts and store them locally."""
 
-    def __init__(self):
-        """Initialize AEMETFetcher with configuration settings."""
-        self.config = get_source_config("aemet")
+    def __init__(self, config=None, source_key="aemet"):
+        """
+        Initialize AEMETFetcher with configuration settings.
+        
+        Args:
+            config (dict): Optional global config dictionary. If None, it will use get_source_config.
+            source_key (str): Key identifying the source in config.
+        """
+        # Allow passing a preloaded config or fallback to get_source_config
+        self.source_key = source_key
+        self.config = config[source_key] if config and source_key in config else get_source_config(source_key)
         self.url = self.config["url"]
         self.output = self.config["output_filename"]
         self.token = self.config["token"]
-        self.timestamp_format = get_source_timestamp_format("aemet")
-
+        self.timestamp_format = get_source_timestamp_format(source_key)
+        self.unique_key = self.config.get("unique_key", "identifier")
+        
     def fetch(self):
         """Fetch AEMET alerts using the provided API token and store them locally."""
         try:
@@ -65,31 +74,17 @@ class AEMETFetcher:
             with tarfile.open(tar_path, "r:") as tar:
                 tar.extractall(path=extract_path)
 
-            # Load last processed timestamp
-            ts_path = Path("data/alertas/aemet_last_timestamp.txt")
-            last_ts = None
-            if ts_path.exists():
-                with ts_path.open("r") as f:
-                    last_ts = datetime.strptime(f.read().strip(), self.timestamp_format)
-
             new_alerts = []
             for xml_file in extract_path.glob("*.xml"):
                 try:
                     alert = self.parse_alert(xml_file)
-                    alert_ts = datetime.strptime(alert["sent"], self.timestamp_format)
-                    if not last_ts or alert_ts > last_ts:
-                        new_alerts.append(alert)
+                    new_alerts.append(alert)
                 except Exception as e:
                     logging.warning(f"[AEMET] Skipping file {xml_file.name} due to parsing error: {e}")
 
             if new_alerts:
-                save_json(new_alerts, self.output)
+                save_json(new_alerts, self.output, source_key=self.source_key, unique_key=self.unique_key)
                 logging.info(f"[AEMET] Saved {len(new_alerts)} alerts to {self.output}")
-
-                latest_ts = max(datetime.strptime(a["sent"], self.timestamp_format) for a in new_alerts)
-                ts_path.parent.mkdir(parents=True, exist_ok=True)
-                ts_path.write_text(latest_ts.strftime(self.timestamp_format))
-                logging.info(f"[AEMET] Saved latest timestamp: {latest_ts}")
             else:
                 logging.info("[AEMET] No new alerts to save.")
         except Exception as e:

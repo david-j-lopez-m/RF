@@ -1,0 +1,53 @@
+{
+  "base_data_path": "../../data/alertas",
+  "preprocessed_output_path": "../../data/preprocessed",
+  "sources": {
+    "noaa_swpc": {
+      "input_path_template": "../../data/alertas/{date}/noaa_alerts_{datetime}.json",
+      "output_path_template": "../../data/preprocessed/{date}/noaa_preprocessed_{datetime}.json"
+    },
+    "nasa_donki": {
+      "input_path_template": "../../data/alertas/{date}/nasa_donki_alerts_{datetime}.json",
+      "output_path_template": "../../data/preprocessed/{date}/nasa_donki_preprocessed_{datetime}.json"
+    },
+    "usgs_earthquakes": {
+      "input_path_template": "../../data/alertas/{date}/usgs_earthquakes_{datetime}.json",
+      "output_path_template": "../../data/preprocessed/{date}/usgs_preprocessed_{datetime}.json"
+    },
+    "aemet": {
+      "input_path_template": "../../data/alertas/{date}/aemet_alerts_{datetime}.json",
+      "output_path_template": "../../data/preprocessed/{date}/aemet_preprocessed_{datetime}.json"
+    },
+    "ign": {
+      "input_path_template": "../../data/alertas/{date}/ign_alerts_{datetime}.json",
+      "output_path_template": "../../data/preprocessed/{date}/ign_preprocessed_{datetime}.json"
+    },
+    "meteoalarm": {
+      "input_path_template": "../../data/alertas/{date}/meteoalarm_alerts_{datetime}.json",
+      "output_path_template": "../../data/preprocessed/{date}/meteoalarm_preprocessed_{datetime}.json"
+    },
+    "gdacs": {
+      "input_path_template": "../../data/alertas/{date}/gdacs_alerts_{datetime}.json",
+      "output_path_template": "../../data/preprocessed/{date}/gdacs_preprocessed_{datetime}.json"
+    },
+    "firms": {
+      "input_path_template": "../../data/alertas/{date}/firms_modis_nrt_{datetime}.json",
+      "output_path_template": "../../data/preprocessed/{date}/firms_preprocessed_{datetime}.json"
+    }
+  },
+
+  "output_schema": {
+    "source": "string",
+    "alert_type": "string",
+    "title": "string",
+    "description": "string",
+    "event_datetime": "string",
+    "location": "string",
+    "severity": "string",
+    "magnitude": "float",
+    "link": "string"
+  },
+  "field_formats": {
+    "event_datetime": "ISO 8601, UTC, e.g. 2025-06-19T18:22:00Z"
+  }
+}

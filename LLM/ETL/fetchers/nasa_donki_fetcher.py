@@ -23,13 +23,20 @@ import requests
 class NASADONKIFetcher:
     """Fetcher class to retrieve NASA DONKI space weather alerts and save them locally."""
 
-    def __init__(self):
-        """Initialize NASADONKIFetcher with configuration settings."""
-        self.config = get_source_config("nasa_donki")
-        self.url = self.config.get("url")
+    def __init__(self, config=None, source_key="nasa_donki"):
+        """Initialize NASADONKIFetcher with configuration.
+            
+            Args:
+                config (dict): Optional global config dictionary. If None, it will use get_source_config.
+                source_key (str): Key identifying the source in config.
+        """
+        # Allow passing a preloaded config or fallback to get_source_config
+        self.source_key = source_key
+        self.config = config[source_key] if config and source_key in config else get_source_config(source_key)
+        self.url = self.config["url"]
         self.output = self.config["output_filename"]
-        self.timestamp_format = get_source_timestamp_format("nasa_donki")
-        self.ts_path = Path(self.config.get("last_timestamp_path", "data/alertas/nasa_donki_last_timestamp.txt"))
+        self.timestamp_format = get_source_timestamp_format(source_key)
+        self.unique_key = self.config.get("unique_key")
 
     def fetch(self):
         """Fetch NOAA alerts from the configured URL, parse message fields, and save to a JSON file."""
@@ -39,48 +46,28 @@ class NASADONKIFetcher:
             r.raise_for_status()
             data = r.json()
 
-            # Load last processed timestamp
-            last_ts = None
-            if self.ts_path.exists():
-                with self.ts_path.open("r") as f:
-                    last_ts = datetime.strptime(f.read().strip(), self.timestamp_format)
-
-            # Filter and parse new alerts
-            new_alerts = []
+            # Parse all alerts
+            parsed_alerts = []
             for alert in data:
-                try:
-                    alert_ts = datetime.strptime(alert["messageIssueTime"], self.timestamp_format)
-                    if not last_ts or alert_ts > last_ts:
-                        parsed = self.parse_message(alert.get("messageBody", ""))
-                        enriched_alert = {
-                            "message_id": alert.get("messageID", ""),
-                            "issue_datetime": alert.get("messageIssueTime", ""),
-                            "body": alert.get("messageBody", ""),
-                            "url": alert.get("messageURL", ""),
-                            # Enriched fields:
-                            "alert_type": parsed["alert_type"],
-                            "event_summary": parsed["event_summary"],
-                        }
-                        new_alerts.append(enriched_alert)
-                except Exception as e:
-                    logging.warning(f"[DONKI] Skipping alert with invalid timestamp: {e}")
+                parsed = self.parse_message(alert.get("messageBody", ""))
+                enriched_alert = {
+                    "message_id": alert.get("messageID", ""),
+                    "issue_datetime": alert.get("messageIssueTime", ""),
+                    "body": alert.get("messageBody", ""),
+                    "url": alert.get("messageURL", ""),
+                    # Enriched fields:
+                    "alert_type": parsed["alert_type"],
+                    "event_summary": parsed["event_summary"],
+                }
+                parsed_alerts.append(enriched_alert)
 
-            if new_alerts:
-                save_json(new_alerts, self.output)
+            if parsed_alerts:
+                save_json(parsed_alerts, self.output, source_key=self.source_key, unique_key=self.unique_key)
                 logging.info(
-                    f"[DONKI] Fetched {len(new_alerts)} new alerts from {self.url} | Status: {status_code}"
+                    f"[DONKI] Fetched {len(parsed_alerts)} alerts from {self.url} | Status: {status_code}"
                 )
-
-                # Save latest timestamp
-                latest_ts = max(
-                    datetime.strptime(alert["issue_datetime"], self.timestamp_format)
-                    for alert in new_alerts
-                )
-                self.ts_path.parent.mkdir(parents=True, exist_ok=True)
-                self.ts_path.write_text(latest_ts.strftime(self.timestamp_format))
-                logging.info(f"[DONKI] Saved latest timestamp: {latest_ts}")
             else:
-                logging.info(f"[DONKI] No new alerts to save from {self.url}")
+                logging.info(f"[DONKI] No alerts to save from {self.url}")
 
         except Exception as e:
             status = getattr(e.response, 'status_code', 'N/A') if hasattr(e, 'response') else 'N/A'
