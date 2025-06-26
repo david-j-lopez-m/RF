@@ -1,6 +1,8 @@
 import json
 import pathlib
 
+PROJECT_ROOT = pathlib.Path(__file__).resolve().parents[2]
+
 CONFIG_PATH = pathlib.Path(__file__).parent / "config.json"
 
 def load_config():
@@ -9,18 +11,36 @@ def load_config():
 
 CONFIG = load_config()
 
-def get_base_path(source_key):
-    raw_path = CONFIG[source_key]["base_data_path"]
-    return pathlib.Path(__file__).parent.parent.parent / raw_path
+def get_absolute_path(rel_path):
+    """
+    Convert relative path (from config.json) to absolute from PROJECT_ROOT.
+    """
+    return (PROJECT_ROOT / rel_path).resolve()
 
 def get_source_config(source_key):
-    return CONFIG.get(source_key, {})
+    """
+    Get the config dict for a given source (e.g., 'noaa_swpc').
+    """
+    return CONFIG[source_key]
 
-def get_timestamp_format():
-    return CONFIG.get("timestamp_format", "%Y-%m-%d %H:%M:%S.%f")
+def get_input_path(source_key):
+    """
+    Get the absolute path to the input file for a source.
+    """
+    rel_path = CONFIG[source_key].get("base_data_path", "data/alerts")
+    filename = CONFIG[source_key]["output_filename"]
+    return get_absolute_path(rel_path) / filename
 
-def get_source_timestamp_format(source_key):
-    return get_source_config(source_key).get("timestamp_format", get_timestamp_format())
+def get_output_path(source_key, output_name=None):
+    """
+    Get the absolute output path for a source (or specific name).
+    """
+    rel_path = CONFIG[source_key].get("base_data_path", "data/alerts")
+    filename = output_name if output_name else CONFIG[source_key]["output_filename"]
+    return get_absolute_path(rel_path) / filename
 
-def get_token(source_key):
-    return get_source_config(source_key).get("token")
+def get_unique_key(source_key):
+    return CONFIG[source_key].get("unique_key")
+
+def get_timestamp_format(source_key):
+    return CONFIG[source_key].get("timestamp_format")

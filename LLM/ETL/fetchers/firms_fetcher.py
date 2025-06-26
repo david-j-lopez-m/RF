@@ -14,7 +14,7 @@ import pandas as pd
 import io
 import hashlib
 from utils import save_json
-from config import get_source_config, get_source_timestamp_format
+from config import get_source_config, get_timestamp_format
 
 class FIRMSFetcher:
     """Fetcher class to retrieve and store NASA FIRMS wildfire alerts from CSV."""
@@ -33,9 +33,10 @@ class FIRMSFetcher:
         self.map_key = self.config["MAP_KEY"]
         self.source = self.config["SOURCE"]
         self.day_range = self.config["DAY_RANGE"]
+        self.base_path = self.config["base_data_path"] 
         self.output = self.config["output_filename"]
         self.base_data_path = self.config.get("base_data_path", "data/alertas")
-        self.timestamp_format = get_source_timestamp_format("firms")
+        self.timestamp_format = get_timestamp_format("firms")
         self.unique_key = self.config.get("unique_key", "identifier")
 
     def fetch(self):
@@ -66,7 +67,8 @@ class FIRMSFetcher:
                 alerts.append(alert)
 
             if alerts:
-                save_json(alerts, self.output, source_key=self.source_key, unique_key=self.unique_key)
+                full_output_path = Path(self.base_path) / self.output
+                save_json(alerts, full_output_path, unique_key=self.unique_key)
                 logging.info(f"[FIRMS] Fetched and saved {len(alerts)} wildfire alerts from {url}")
             else:
                 logging.info(f"[FIRMS] No wildfire alerts to save from {url}")

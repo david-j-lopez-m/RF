@@ -3,27 +3,26 @@
 import os
 import json
 from datetime import datetime
-from config import get_base_path
 import logging
 
-def create_daily_directory(base_path=None):
-    """
-    Create a subfolder named with today's date inside the base data directory.
+# def create_daily_directory(base_path=None):
+#     """
+#     Create a subfolder named with today's date inside the base data directory.
 
-    Args:
-        base_path (str, optional): Override base path from config.
+#     Args:
+#         base_path (str, optional): Override base path from config.
 
-    Returns:
-        str: Full path to today's directory.
-    """
-    if base_path is None:
-        base_path = get_base_path()
-    today = datetime.now().strftime("%Y-%m-%d")
-    dir_path = os.path.join(base_path, today)
-    os.makedirs(dir_path, exist_ok=True)
-    return dir_path
+#     Returns:
+#         str: Full path to today's directory.
+#     """
+#     if base_path is None:
+#         base_path = get_base_path()
+#     today = datetime.now().strftime("%Y-%m-%d")
+#     dir_path = os.path.join(base_path, today)
+#     os.makedirs(dir_path, exist_ok=True)
+#     return dir_path
 
-def save_json(data, filename, source_key=None, unique_key=None):
+def save_json(data, file_path, unique_key=None):
     """
     Save or append JSON data to a file in the base data directory for a specific source.
     If the file exists, appends new unique entries (by unique_key).
@@ -38,9 +37,7 @@ def save_json(data, filename, source_key=None, unique_key=None):
     Returns:
         str: Full path to the saved file.
     """
-    base_path = get_base_path(source_key) if source_key else get_base_path()
-    os.makedirs(base_path, exist_ok=True)
-    file_path = os.path.join(base_path, filename)
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
     existing = []
     if os.path.exists(file_path):
@@ -50,20 +47,18 @@ def save_json(data, filename, source_key=None, unique_key=None):
             except Exception:
                 existing = []
 
-    # Combine and deduplicate if unique_key is set
     if unique_key:
         all_alerts = {a[unique_key]: a for a in existing if unique_key in a}
         for alert in data:
             if unique_key in alert:
                 all_alerts[alert[unique_key]] = alert
             else:
-                all_alerts[str(alert)] = alert  # fallback if key missing
+                all_alerts[str(alert)] = alert
         final = list(all_alerts.values())
     else:
-        # Just append all
         final = existing + data
 
     with open(file_path, "w", encoding="utf-8") as f:
         json.dump(final, f, ensure_ascii=False, indent=2)
-    logging.info(f"[utils] Appended file to: {file_path}")
+    logging.info(f"[utils] Saved to: {file_path}")
     return file_path

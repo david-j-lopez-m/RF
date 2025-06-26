@@ -17,7 +17,7 @@ import logging
 import re
 from datetime import datetime
 from pathlib import Path
-from config import get_source_config, get_source_timestamp_format
+from config import get_source_config, get_timestamp_format
 from utils import save_json
 import requests
 
@@ -35,8 +35,9 @@ class NOAAFetcher:
         self.source_key = source_key
         self.config = config[source_key] if config and source_key in config else get_source_config(source_key)
         self.url = self.config["url"]
+        self.base_path = self.config["base_data_path"] 
         self.output = self.config["output_filename"]
-        self.timestamp_format = get_source_timestamp_format(source_key)
+        self.timestamp_format = get_timestamp_format(source_key)
         self.unique_key = self.config.get("unique_key")
 
 
@@ -70,7 +71,8 @@ class NOAAFetcher:
                     logging.warning(f"[NOAA] Skipping alert with invalid timestamp: {e}")
 
             if new_alerts:
-                save_json(new_alerts, self.output, source_key=self.source_key, unique_key=self.unique_key)
+                full_output_path = Path(self.base_path) / self.output
+                save_json(new_alerts, full_output_path, unique_key=self.unique_key)
                 logging.info(
                     f"[NOAA] Fetched {len(new_alerts)} alerts from {self.url} | Status: {status_code}"
                 )

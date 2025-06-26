@@ -18,7 +18,7 @@ from pathlib import Path
 from datetime import datetime
 import xml.etree.ElementTree as ET
 from utils import save_json
-from config import get_source_config, get_source_timestamp_format
+from config import get_source_config, get_timestamp_format
 
 class IGNFetcher:
     """Fetcher class to retrieve IGN seismic alerts and store them locally."""
@@ -34,8 +34,9 @@ class IGNFetcher:
         self.source_key = source_key
         self.config = config[source_key] if config and source_key in config else get_source_config(source_key)
         self.url = self.config["url"]
+        self.base_path = self.config["base_data_path"] 
         self.output = self.config["output_filename"]
-        self.timestamp_format = get_source_timestamp_format(source_key)
+        self.timestamp_format = get_timestamp_format(source_key)
         self.unique_key = self.config.get("unique_key")
 
     def fetch(self):
@@ -83,7 +84,8 @@ class IGNFetcher:
 
             # Save all parsed alerts
             if alerts:
-                save_json(alerts, self.output, source_key=self.source_key, unique_key=self.unique_key)
+                full_output_path = Path(self.base_path) / self.output
+                save_json(alerts, full_output_path, unique_key=self.unique_key)
                 logging.info(f"[IGN] Fetched {len(alerts)} alerts from {self.url} | Status: {response.status_code}")
             else:
                 logging.info(f"[IGN] No alerts found to save from {self.url}")

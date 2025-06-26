@@ -8,7 +8,7 @@ from fetchers.meteoalarm_fetcher import MeteoalarmFetcher
 from fetchers.gdacs_fetcher import GDACSFetcher
 from fetchers.ign_fetcher import IGNFetcher
 from fetchers.firms_fetcher import FIRMSFetcher
-from config import get_source_config, CONFIG
+from config import CONFIG
 
 def run_all_sources():
     # Configure logging

@@ -1,41 +1,41 @@
 {
-  "base_data_path": "../../data/alertas",
-  "preprocessed_output_path": "../../data/preprocessed",
+  "base_data_path": "data/alerts",
+  "preprocessed_output_path": "data/preprocessed",
   "sources": {
     "noaa_swpc": {
-      "input_path_template": "../../data/alertas/{date}/noaa_alerts_{datetime}.json",
-      "output_path_template": "../../data/preprocessed/{date}/noaa_preprocessed_{datetime}.json"
+      "input_path_template": "data/alerts/noaa_alerts.json",
+      "output_path_template": "data/preprocessed/noaa_preprocessed.json",
+      "unique_key": "product_id"
     },
     "nasa_donki": {
-      "input_path_template": "../../data/alertas/{date}/nasa_donki_alerts_{datetime}.json",
-      "output_path_template": "../../data/preprocessed/{date}/nasa_donki_preprocessed_{datetime}.json"
+      "input_path_template": "data/alerts/nasa_donki_alerts.json",
+      "output_path_template": "data/preprocessed/nasa_donki_preprocessed.json"
     },
     "usgs_earthquakes": {
-      "input_path_template": "../../data/alertas/{date}/usgs_earthquakes_{datetime}.json",
-      "output_path_template": "../../data/preprocessed/{date}/usgs_preprocessed_{datetime}.json"
+      "input_path_template": "data/alerts/usgs_earthquakes.json",
+      "output_path_template": "data/preprocessed/usgs_preprocessed.json"
     },
     "aemet": {
-      "input_path_template": "../../data/alertas/{date}/aemet_alerts_{datetime}.json",
-      "output_path_template": "../../data/preprocessed/{date}/aemet_preprocessed_{datetime}.json"
+      "input_path_template": "data/alerts/aemet_alerts.json",
+      "output_path_template": "data/preprocessed/aemet_preprocessed.json"
     },
     "ign": {
-      "input_path_template": "../../data/alertas/{date}/ign_alerts_{datetime}.json",
-      "output_path_template": "../../data/preprocessed/{date}/ign_preprocessed_{datetime}.json"
+      "input_path_template": "data/alerts/ign_alertsjson",
+      "output_path_template": "data/preprocessed/ign_preprocessed.json"
     },
     "meteoalarm": {
-      "input_path_template": "../../data/alertas/{date}/meteoalarm_alerts_{datetime}.json",
-      "output_path_template": "../../data/preprocessed/{date}/meteoalarm_preprocessed_{datetime}.json"
+      "input_path_template": "data/alerts/meteoalarm_alerts.json",
+      "output_path_template": "data/preprocessed/meteoalarm_preprocessed.json"
     },
     "gdacs": {
-      "input_path_template": "../../data/alertas/{date}/gdacs_alerts_{datetime}.json",
-      "output_path_template": "../../data/preprocessed/{date}/gdacs_preprocessed_{datetime}.json"
+      "input_path_template": "data/alerts/gdacs_alerts.json",
+      "output_path_template": "data/preprocessed/gdacs_preprocessed.json"
     },
     "firms": {
-      "input_path_template": "../../data/alertas/{date}/firms_modis_nrt_{datetime}.json",
-      "output_path_template": "../../data/preprocessed/{date}/firms_preprocessed_{datetime}.json"
+      "input_path_template": "data/alerts/firms_modis_nrt.json",
+      "output_path_template": "data/preprocessed/firms_preprocessed.json"
     }
   },
-
   "output_schema": {
     "source": "string",
     "alert_type": "string",
@@ -45,7 +45,13 @@
     "location": "string",
     "severity": "string",
     "magnitude": "float",
-    "link": "string"
+    "link": "string",
+    "unique_key": "string",
+    "impacts": "string",
+    "valid_from": "string",
+    "valid_to": "string",
+    "tags": "array[string]",
+    "extra_data": "object"
   },
   "field_formats": {
     "event_datetime": "ISO 8601, UTC, e.g. 2025-06-19T18:22:00Z"

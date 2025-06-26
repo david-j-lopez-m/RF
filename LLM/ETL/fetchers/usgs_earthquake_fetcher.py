@@ -15,7 +15,7 @@ import logging
 from pathlib import Path
 from datetime import datetime, timezone
 from utils import save_json
-from config import get_source_config, get_source_timestamp_format
+from config import get_source_config, get_timestamp_format
 
 class USGSEarthquakeFetcher:
     """Fetcher class to retrieve USGS earthquake alerts and store them locally."""
@@ -31,8 +31,9 @@ class USGSEarthquakeFetcher:
         self.source_key = source_key
         self.config = config[source_key] if config and source_key in config else get_source_config(source_key)
         self.url = self.config["url"]
+        self.base_path = self.config["base_data_path"] 
         self.output = self.config["output_filename"]
-        self.timestamp_format = get_source_timestamp_format(source_key)
+        self.timestamp_format = get_timestamp_format(source_key)
         self.unique_key = self.config.get("unique_key")
 
     def fetch(self):
@@ -53,7 +54,8 @@ class USGSEarthquakeFetcher:
                     logging.warning(f"[USGS] Skipping alert due to parsing error: {e}")
 
             if alerts:
-                save_json(alerts, self.output, source_key=self.source_key, unique_key=self.unique_key)
+                full_output_path = Path(self.base_path) / self.output
+                save_json(alerts, full_output_path, unique_key=self.unique_key)
                 logging.info(
                     f"[USGS] Fetched and saved {len(alerts)} structured alerts from {self.url} | Status: {status_code}"
                 )
