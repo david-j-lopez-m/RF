@@ -1,57 +1,36 @@
 import json
-import re
-import spacy
-import os
 import logging
+import os
 from typing import List, Dict
 from config import get_source_config, get_source_input_path, get_source_output_path
 
-class NOAAAlertPreprocessor:
+class FIRMSAlertPreprocessor:
     """
-    Preprocessor for NOAA space weather alerts to convert them into a standard format for LLM/RAG pipelines.
+    Preprocessor for NASA FIRMS wildfire alerts to convert them into a standard format for LLM/RAG pipelines.
     """
 
     def __init__(self):
         """
         Initialize the preprocessor by resolving input/output paths from config.
         """
-        self.cfg = get_source_config("noaa_swpc")
-        self.input_path = get_source_input_path("noaa_swpc")
-        self.output_path = get_source_output_path("noaa_swpc")
-        self.timestamp_format = self.cfg.get("timestamp_format", "%Y-%m-%d %H:%M:%S.%f")
-        self.unique_key = self.cfg.get("unique_key", "issue_datetime")
-        self.nlp = spacy.load("en_core_web_sm") 
-        logging.info(f"Initialized NOAAAlertPreprocessor with input: {self.input_path}, output: {self.output_path}")
+        self.cfg = get_source_config("firms")
+        self.input_path = get_source_input_path("firms")
+        self.output_path = get_source_output_path("firms")
+        self.unique_key = self.cfg.get("unique_key", "firms_id")
+        self.timestamp_format = self.cfg.get("timestamp_format", "%Y-%m-%d %H%M")
+        logging.info(f"Initialized FIRMSAlertPreprocessor with input: {self.input_path}, output: {self.output_path}")
 
-    def extract_location(self, impacts: str, message: str = "") -> str:
+    def extract_location(self, latitude, longitude):
         """
-        Extract relevant location info from impacts/message.
-        Uses spaCy NER for place/entity extraction, plus geomagnetic patterns.
+        Return location string from latitude and longitude.
+        For future improvement: use reverse geocoding here.
         """
-        fulltext = impacts + " " + message
-
-        # 1. Geomagnetic Latitude
-        lat_match = re.search(r"(\d+)\s*degrees? Geomagnetic Latitude", fulltext, re.IGNORECASE)
-        if lat_match:
-            return f"Poleward of {lat_match.group(1)} degrees Geomagnetic Latitude"
-
-        # 2. Use spaCy to extract GPE (Geo-Political Entities: countries, cities, etc.)
-        doc = self.nlp(fulltext)
-        places = [ent.text for ent in doc.ents if ent.label_ in ("GPE", "LOC")]
-        if places:
-            return ", ".join(sorted(set(places)))
-
-        # 3. Satellite/space/global
-        if any(kw in fulltext.lower() for kw in ["satellite", "spacecraft", "satellite systems"]):
-            return "Global (satellite/space systems)"
-        if "global" in fulltext.lower():
-            return "Global"
-
-        # Fallback: unknown or general description
+        if latitude is not None and longitude is not None:
+            return f"{latitude:.5f}, {longitude:.5f}"
         return "Unknown"
 
     def standardize_datetime(self, dt_string: str) -> str:
-        """Convert NOAA datetime string to ISO 8601 format (UTC)."""
+        """Convert FIRMS datetime string to ISO 8601 format (UTC)."""
         from datetime import datetime
         try:
             dt = datetime.strptime(dt_string, self.timestamp_format)
@@ -61,7 +40,7 @@ class NOAAAlertPreprocessor:
             return dt_string
 
     def load_alerts(self) -> List[Dict]:
-        """Load raw NOAA alerts from input JSON file."""
+        """Load raw FIRMS alerts from input JSON file."""
         try:
             with open(self.input_path, "r", encoding="utf-8") as f:
                 alerts = json.load(f)
@@ -97,26 +76,31 @@ class NOAAAlertPreprocessor:
                 logging.debug(f"Skipping already processed alert: {key}")
                 continue
 
-            message = (alert.get("message") or "").replace("\r\n", " ").replace("\n", " ").strip()
-            impacts = (alert.get("impacts") or "").replace("\r\n", " ").replace("\n", " ").strip()
-            event_datetime = self.standardize_datetime(alert.get("issue_datetime", ""))
-            magnitude = alert.get("k_index")
-            try:
-                magnitude = float(magnitude)
-            except (TypeError, ValueError):
-                pass
-
+            event_datetime = self.standardize_datetime(alert.get("event_datetime", ""))
+            latitude = alert.get("latitude")
+            longitude = alert.get("longitude")
+            description = f"Wildfire detected by {alert.get('satellite', 'Unknown Satellite')} ({alert.get('instrument', '')}), brightness: {alert.get('brightness', '')}, confidence: {alert.get('confidence', '')}, FRP: {alert.get('frp', '')}."
+            
             processed.append({
-                "source": "NOAA",
-                "alert_type": "space_weather",
-                "title": message.split(".")[0] if message else "NOAA Alert",
-                "description": message,
+                "source": "FIRMS",
+                "alert_type": "wildfire",
+                "title": "Wildfire detection",
+                "description": description,
                 "event_datetime": event_datetime,
-                "location": self.extract_location(impacts, message),
+                "location": self.extract_location(latitude, longitude),
                 "severity": None,
-                "magnitude": magnitude,
-                "link": "https://www.swpc.noaa.gov/noaa-scales-explanation",
-                self.unique_key: key
+                "magnitude": alert.get("brightness"),  # Could be replaced with another field if needed
+                "link": "https://firms.modaps.eosdis.nasa.gov/",
+                self.unique_key: key,
+                "latitude": latitude,
+                "longitude": longitude,
+                "confidence": alert.get("confidence"),
+                "extra_data": {
+                    "frp": alert.get("frp"),
+                    "satellite": alert.get("satellite"),
+                    "instrument": alert.get("instrument"),
+                    "daynight": alert.get("daynight")
+                }
             })
             logging.info(f"Processed new alert with key: {key}")
         return processed

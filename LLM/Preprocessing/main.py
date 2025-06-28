@@ -2,6 +2,7 @@ import logging
 import os
 from preprocessors.noaa_preprocessing import NOAAAlertPreprocessor
 from preprocessors.aemet_preprocessing import AEMETAlertPreprocessor
+from preprocessors.firms_preprocessing import FIRMSAlertPreprocessor
 
 def run_all_preprocessing():
     # Configure logging
@@ -18,13 +19,20 @@ def run_all_preprocessing():
     # NOAA Space Weather Alerts
     logging.info(f"Preprocessing data from NOAA SWPC")
     noaa = NOAAAlertPreprocessor()
-    alerts = noaa.load_alerts()
-    processed = noaa.process_alerts(alerts)
+    raw_alerts = noaa.load_alerts()
+    processed = noaa.process_alerts(raw_alerts)
     noaa.save_alerts(processed)
 
     # AEMET Space Weather Alerts
     logging.info(f"Preprocessing data from AEMET")
     pre = AEMETAlertPreprocessor()
+    raw_alerts = pre.load_alerts()
+    processed = pre.process_alerts(raw_alerts)
+    pre.save_alerts(processed)
+
+    # FIRMS MODIS Space Weather Alerts
+    logging.info(f"Preprocessing data from FIRMS MODIS")
+    pre = FIRMSAlertPreprocessor()
     raw_alerts = pre.load_alerts()
     processed = pre.process_alerts(raw_alerts)
     pre.save_alerts(processed)

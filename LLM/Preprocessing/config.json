@@ -9,7 +9,8 @@
     },
     "nasa_donki": {
       "input_path_template": "data/alerts/nasa_donki_alerts.json",
-      "output_path_template": "data/preprocessed/nasa_donki_preprocessed.json"
+      "output_path_template": "data/preprocessed/nasa_donki_preprocessed.json",
+      "unique_key": "firms_id"
     },
     "usgs_earthquakes": {
       "input_path_template": "data/alerts/usgs_earthquakes.json",
@@ -17,7 +18,9 @@
     },
     "aemet": {
       "input_path_template": "data/alerts/aemet_alerts.json",
-      "output_path_template": "data/preprocessed/aemet_preprocessed.json"
+      "output_path_template": "data/preprocessed/aemet_preprocessed.json",
+      "unique_key": "identifier"
+
     },
     "ign": {
       "input_path_template": "data/alerts/ign_alertsjson",
@@ -33,7 +36,9 @@
     },
     "firms": {
       "input_path_template": "data/alerts/firms_modis_nrt.json",
-      "output_path_template": "data/preprocessed/firms_preprocessed.json"
+      "output_path_template": "data/preprocessed/firms_preprocessed.json",
+      "unique_key": "firms_id"
+
     }
   },
   "output_schema": {
