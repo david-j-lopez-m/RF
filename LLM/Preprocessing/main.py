@@ -3,6 +3,8 @@ import os
 from preprocessors.noaa_preprocessing import NOAAAlertPreprocessor
 from preprocessors.aemet_preprocessing import AEMETAlertPreprocessor
 from preprocessors.firms_preprocessing import FIRMSAlertPreprocessor
+from preprocessors.gdacs_preprocessing import GDACSAlertPreprocessor
+from preprocessors.ign_alerts_preprocessing import IGNAlertPreprocessor
 
 def run_all_preprocessing():
     # Configure logging
@@ -23,7 +25,7 @@ def run_all_preprocessing():
     processed = noaa.process_alerts(raw_alerts)
     noaa.save_alerts(processed)
 
-    # AEMET Space Weather Alerts
+    # AEMET Weather Alerts
     logging.info(f"Preprocessing data from AEMET")
     pre = AEMETAlertPreprocessor()
     raw_alerts = pre.load_alerts()
@@ -36,6 +38,21 @@ def run_all_preprocessing():
     raw_alerts = pre.load_alerts()
     processed = pre.process_alerts(raw_alerts)
     pre.save_alerts(processed)
+
+    # GDACS Alerts
+    logging.info(f"Preprocessing data from GDACS")
+    pre = GDACSAlertPreprocessor()
+    raw_alerts = pre.load_alerts()
+    processed = pre.process_alerts(raw_alerts)
+    pre.save_alerts(processed)
+
+    # IGN Spain earthquakes Alerts
+    logging.info(f"Preprocessing data from IGN")
+    pre = IGNAlertPreprocessor()
+    raw_alerts = pre.load_alerts()
+    processed = pre.process_alerts(raw_alerts)
+    pre.save_alerts(processed)
+
 
 if __name__ == "__main__":
     run_all_preprocessing()

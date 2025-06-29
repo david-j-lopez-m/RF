@@ -23,8 +23,9 @@
 
     },
     "ign": {
-      "input_path_template": "data/alerts/ign_alertsjson",
-      "output_path_template": "data/preprocessed/ign_preprocessed.json"
+      "input_path_template": "data/alerts/ign_alerts.json",
+      "output_path_template": "data/preprocessed/ign_preprocessed.json",
+      "unique_key": "event_datetime"
     },
     "meteoalarm": {
       "input_path_template": "data/alerts/meteoalarm_alerts.json",
@@ -32,7 +33,8 @@
     },
     "gdacs": {
       "input_path_template": "data/alerts/gdacs_alerts.json",
-      "output_path_template": "data/preprocessed/gdacs_preprocessed.json"
+      "output_path_template": "data/preprocessed/gdacs_preprocessed.json",
+      "unique_key": "event_datetime"
     },
     "firms": {
       "input_path_template": "data/alerts/firms_modis_nrt.json",
