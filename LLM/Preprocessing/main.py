@@ -5,6 +5,9 @@ from preprocessors.aemet_preprocessing import AEMETAlertPreprocessor
 from preprocessors.firms_preprocessing import FIRMSAlertPreprocessor
 from preprocessors.gdacs_preprocessing import GDACSAlertPreprocessor
 from preprocessors.ign_alerts_preprocessing import IGNAlertPreprocessor
+from preprocessors.meteoalarm_preprocessing import MeteoalarmAlertPreprocessor
+from preprocessors.nasa_donki_preprocessing import NASADONKIAlertPreprocessor
+from preprocessors.usgs_earthquakes_preprocessing import USGSEarthquakePreprocessor
 
 def run_all_preprocessing():
     # Configure logging
@@ -52,6 +55,28 @@ def run_all_preprocessing():
     raw_alerts = pre.load_alerts()
     processed = pre.process_alerts(raw_alerts)
     pre.save_alerts(processed)
+
+    # MeteoAlarm Alerts
+    logging.info(f"Preprocessing data from MeteoAlarms")
+    pre = MeteoalarmAlertPreprocessor()
+    raw_alerts = pre.load_alerts()
+    processed = pre.process_alerts(raw_alerts)
+    pre.save_alerts(processed)
+
+    # NASA DONKI  Alerts
+    logging.info(f"Preprocessing data from NASA DONKI")
+    pre = NASADONKIAlertPreprocessor()
+    raw_alerts = pre.load_alerts()
+    processed = pre.process_alerts(raw_alerts)
+    pre.save_alerts(processed)
+
+    # USGS Alerts
+    logging.info(f"Preprocessing data from USGS")
+    pre = USGSEarthquakePreprocessor()
+    raw_alerts = pre.load_alerts()
+    processed = pre.process_alerts(raw_alerts)
+    pre.save_alerts(processed)
+
 
 
 if __name__ == "__main__":

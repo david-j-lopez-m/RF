@@ -14,7 +14,9 @@
     },
     "usgs_earthquakes": {
       "input_path_template": "data/alerts/usgs_earthquakes.json",
-      "output_path_template": "data/preprocessed/usgs_preprocessed.json"
+      "output_path_template": "data/preprocessed/usgs_preprocessed.json",
+      "unique_key": "code"
+
     },
     "aemet": {
       "input_path_template": "data/alerts/aemet_alerts.json",
@@ -29,7 +31,9 @@
     },
     "meteoalarm": {
       "input_path_template": "data/alerts/meteoalarm_alerts.json",
-      "output_path_template": "data/preprocessed/meteoalarm_preprocessed.json"
+      "output_path_template": "data/preprocessed/meteoalarm_preprocessed.json",
+      "unique_key": "guid"
+
     },
     "gdacs": {
       "input_path_template": "data/alerts/gdacs_alerts.json",
