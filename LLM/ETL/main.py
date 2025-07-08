@@ -4,7 +4,6 @@ from fetchers.noaa_fetcher import NOAAFetcher
 from fetchers.usgs_earthquake_fetcher import USGSEarthquakeFetcher
 from fetchers.nasa_donki_fetcher import NASADONKIFetcher
 from fetchers.aemet_fetcher import AEMETFetcher
-from fetchers.meteoalarm_fetcher import MeteoalarmFetcher
 from fetchers.gdacs_fetcher import GDACSFetcher
 from fetchers.ign_fetcher import IGNFetcher
 from fetchers.firms_fetcher import FIRMSFetcher
@@ -48,11 +47,6 @@ def run_all_sources():
         logging.info(f"Downloading data from AEMET")
         aemet =AEMETFetcher()
         aemet.fetch()
-
-    if "meteoalarm" in enabled_sources:
-        logging.info(f"Downloading data from METEOALARM")
-        meteoalarm =MeteoalarmFetcher()
-        meteoalarm.fetch()
 
     if "gdacs" in enabled_sources:
         logging.info(f"Downloading data from GDACS")

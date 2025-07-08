@@ -76,8 +76,19 @@ class IGNAlertPreprocessor:
             logging.warning(f"Could not read preprocessed file: {e}")
             return set()
 
+    def is_relevant_magnitude(self, alert: Dict, threshold: float = 4.0) -> bool:
+        """Return True if the alert's magnitude is not None and is >= threshold."""
+        magnitude = alert.get("magnitude")
+        try:
+            magnitude = float(magnitude)
+        except (TypeError, ValueError):
+            return False
+        return magnitude >= threshold
+
     def process_alerts(self, alerts: List[Dict]) -> List[Dict]:
-        """Transform raw alerts into the standardized output format, skipping duplicates."""
+        """Transform raw alerts into the standardized output format, skipping duplicates.
+        Only earthquakes with magnitude >= 4.0 are processed.
+        """
         already_processed = self.load_preprocessed_keys()
         processed = []
         for alert in alerts:
@@ -91,9 +102,13 @@ class IGNAlertPreprocessor:
             event_datetime = self.standardize_datetime(alert.get("event_datetime", ""))
             magnitude = alert.get("magnitude")
             try:
-                magnitude = float(magnitude)
+                magnitude_float = float(magnitude)
             except (TypeError, ValueError):
-                magnitude = None
+                magnitude_float = None
+
+            if not self.is_relevant_magnitude({"magnitude": magnitude_float}):
+                continue
+
             location = self.extract_location(description)
 
             processed.append({
@@ -104,7 +119,7 @@ class IGNAlertPreprocessor:
                 "event_datetime": event_datetime,
                 "location": location,
                 "severity": None,
-                "magnitude": magnitude,
+                "magnitude": magnitude_float,
                 "link": "",  # If you want to add a link field later, extract it here.
                 self.unique_key: key
             })

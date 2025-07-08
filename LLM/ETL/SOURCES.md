@@ -56,13 +56,17 @@ This document describes the data sources used for retrieving meteorological, geo
 
 ---
 
-## 6. Meteoalarm (EU, extended)
+## 6. Meteoalarm (EU, extended) — *Deprecated in current prototype*
 
-- **URL**: https://feeds.meteoalarm.org/rss/spain
+- **URL**: https://feeds.meteoalarm.org/rss/spain *(legacy feed, not used)*
 - **Type**: Weather + civil protection (e.g. flood, fire, health risk)
-- **Format**: RSS/XML
-- **Auth**: Not required
-- **Notes**: May include overlapping alerts with AEMET. Some EU countries report additional civil protection events.
+- **Format**: RSS/XML, OGC API (GeoJSON, MQTT)
+- **Auth**: Not required for RSS; OGC API archive available via REST, real-time requires MQTT and token
+- **Status**: **Currently disabled in pipeline**
+- **Notes**:  
+    - Meteoalarm covers all EU but the RSS feed and archive API are not suitable for real-time alerting in Spain (due to delay and redundancy with AEMET).  
+    - The new OGC API only exposes real-time data via MQTT, which is not implemented in this project prototype.  
+    - May be re-enabled in the future for cross-border, pan-European, or historic alert analysis if scope is expanded.
 
 ---
 

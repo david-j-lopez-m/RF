@@ -3,6 +3,8 @@ import logging
 import os
 from typing import List, Dict
 from config import get_source_config, get_source_input_path, get_source_output_path
+from geopy.geocoders import Nominatim
+from geopy.extra.rate_limiter import RateLimiter
 
 class FIRMSAlertPreprocessor:
     """
@@ -18,16 +20,38 @@ class FIRMSAlertPreprocessor:
         self.output_path = get_source_output_path("firms")
         self.unique_key = self.cfg.get("unique_key", "firms_id")
         self.timestamp_format = self.cfg.get("timestamp_format", "%Y-%m-%d %H%M")
+        self.geolocator = Nominatim(user_agent="rf_preprocessor")
+        self.reverse = RateLimiter(self.geolocator.reverse, min_delay_seconds=1)
+        self.location_cache = {}  # Cache for already resolved coordinates
         logging.info(f"Initialized FIRMSAlertPreprocessor with input: {self.input_path}, output: {self.output_path}")
 
     def extract_location(self, latitude, longitude):
         """
-        Return location string from latitude and longitude.
-        For future improvement: use reverse geocoding here.
+        Resolve location name (province/region) from latitude and longitude using reverse geocoding.
+        Fallback to "lat, lon" string if resolution fails.
         """
-        if latitude is not None and longitude is not None:
-            return f"{latitude:.5f}, {longitude:.5f}"
-        return "Unknown"
+        if latitude is None or longitude is None:
+            return "Unknown"
+
+        coord_key = (round(latitude, 3), round(longitude, 3))  # Round to avoid too many unique keys
+        if coord_key in self.location_cache:
+            return self.location_cache[coord_key]
+
+        try:
+            location = self.reverse((latitude, longitude), language='en', exactly_one=True, timeout=10)
+            if location and location.raw and "address" in location.raw:
+                address = location.raw["address"]
+                province = address.get("state") or address.get("county") or address.get("region")
+                if province:
+                    self.location_cache[coord_key] = province
+                    return province
+            logging.warning(f"No province found for coordinates: {latitude}, {longitude}")
+        except Exception as e:
+            logging.error(f"Reverse geocoding failed for ({latitude}, {longitude}): {e}")
+
+        fallback = f"{latitude:.5f}, {longitude:.5f}"
+        self.location_cache[coord_key] = fallback
+        return fallback
 
     def standardize_datetime(self, dt_string: str) -> str:
         """Convert FIRMS datetime string to ISO 8601 format (UTC)."""
@@ -66,21 +90,57 @@ class FIRMSAlertPreprocessor:
             logging.warning(f"Could not read preprocessed file: {e}")
             return set()
 
+    def is_relevant_fire(self, brightness, confidence, frp):
+        """
+        Determine if a fire alert is relevant based on brightness, confidence, and FRP thresholds.
+        Precision-oriented: exclude small, low-confidence fires.
+        """
+        if brightness is None or confidence is None or frp is None:
+            return False
+        # Confidence >= 30 (nominal/high), FRP >= 20 MW, brightness optional
+        return confidence >= 30 and frp >= 20.0
+    
+    def is_in_spain(self, lat, lon) -> bool:
+        """
+        Check if coordinates are within Spain and Southern Europe bounding box.
+        Spain approx: lat 35.9 to 43.8, lon -9.3 to 3.3
+        Southern Europe buffer: lat 35 to 47, lon -10 to 20
+        """
+        if lat is None or lon is None:
+            return False
+        return 36.0 <= lat <= 44.0 and 5 <= lon <= 20.0
+
     def process_alerts(self, alerts: List[Dict]) -> List[Dict]:
-        """Transform raw alerts into the standardized output format, skipping duplicates."""
+        """
+        Process raw FIRMS alerts: filter for relevance, standardize, and prepare for storage.
+        """
         already_processed = self.load_preprocessed_keys()
         processed = []
+
         for alert in alerts:
             key = alert.get(self.unique_key)
             if key in already_processed:
                 logging.debug(f"Skipping already processed alert: {key}")
                 continue
 
-            event_datetime = self.standardize_datetime(alert.get("event_datetime", ""))
             latitude = alert.get("latitude")
             longitude = alert.get("longitude")
-            description = f"Wildfire detected by {alert.get('satellite', 'Unknown Satellite')} ({alert.get('instrument', '')}), brightness: {alert.get('brightness', '')}, confidence: {alert.get('confidence', '')}, FRP: {alert.get('frp', '')}."
-            
+            # Filter by geographic relevance (Spain & Southern Europe)
+            if not self.is_in_spain(latitude, longitude):
+                logging.info(f"Skipping alert {key}: outside Spain ({latitude}, {longitude})")
+                continue
+
+            brightness = alert.get("brightness")
+            confidence = alert.get("confidence")
+            frp = alert.get("frp")
+            # Filter by fire relevance (confidence, FRP thresholds)
+            if not self.is_relevant_fire(brightness, confidence, frp):
+                logging.info(f"Skipping alert {key}: not relevant (brightness={brightness}, confidence={confidence}, frp={frp})")
+                continue
+
+            event_datetime = self.standardize_datetime(alert.get("event_datetime", ""))
+            description = f"Wildfire detected by {alert.get('satellite', 'Unknown Satellite')} ({alert.get('instrument', '')}), brightness: {brightness}, confidence: {confidence}, FRP: {frp}."
+
             processed.append({
                 "source": "FIRMS",
                 "alert_type": "wildfire",
@@ -89,14 +149,14 @@ class FIRMSAlertPreprocessor:
                 "event_datetime": event_datetime,
                 "location": self.extract_location(latitude, longitude),
                 "severity": None,
-                "magnitude": alert.get("brightness"),  # Could be replaced with another field if needed
+                "magnitude": brightness,
                 "link": "https://firms.modaps.eosdis.nasa.gov/",
                 self.unique_key: key,
                 "latitude": latitude,
                 "longitude": longitude,
-                "confidence": alert.get("confidence"),
+                "confidence": confidence,
                 "extra_data": {
-                    "frp": alert.get("frp"),
+                    "frp": frp,
                     "satellite": alert.get("satellite"),
                     "instrument": alert.get("instrument"),
                     "daynight": alert.get("daynight")

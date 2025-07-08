@@ -80,30 +80,41 @@ class AEMETAlertPreprocessor:
             return set()
 
     def process_alerts(self, alerts: List[Dict]) -> List[Dict]:
-        """Transform raw alerts into the standardized output format, skipping duplicates."""
+        """Transform raw alerts into the standardized output format, skipping duplicates and filtering by relevance."""
         already_processed = self.load_preprocessed_keys()
         processed = []
+        # Define relevant severities and levels
+        relevant_severities = {"Severe", "Extreme"}
+        relevant_levels = {"naranja", "rojo"} 
         for alert in alerts:
             key = alert.get(self.unique_key)
             if key in already_processed:
                 logging.debug(f"Skipping already processed alert: {key}")
                 continue
 
-            # Parse/standardize fields
+            # Filtering by severity and level
+            severity = (alert.get("severity") or "").capitalize()
+            level = (alert.get("level") or "").lower()
+            if severity not in relevant_severities:
+                logging.info(f"Skipping alert {key} due to non-relevant severity: {severity}")
+                continue
+            if level not in relevant_levels:
+                logging.info(f"Skipping alert {key} due to non-relevant level: {level}")
+                continue
+
             title = alert.get("headline") or alert.get("event") or "AEMET Alert"
             description = (alert.get("description") or "").replace("\r\n", " ").replace("\n", " ").strip()
             event_datetime = self.standardize_datetime(alert.get("sent") or alert.get("onset"))
             valid_from = self.standardize_datetime(alert.get("onset"))
             valid_to = self.standardize_datetime(alert.get("expires"))
             location = alert.get("area") or ""
-            severity = alert.get("severity")
             magnitude = None
             try:
                 magnitude = float(alert.get("probability", "") or 0)
             except Exception:
                 pass
             link = ""
-            impacts = "" 
+            impacts = ""
             tags = self.extract_tags(alert.get("event", ""), alert.get("headline", ""), alert.get("description", ""))
             extra_data = {
                 "urgency": alert.get("urgency"),
@@ -130,7 +141,8 @@ class AEMETAlertPreprocessor:
                 "tags": tags,
                 "extra_data": extra_data,
             })
-            logging.info(f"Processed new alert with key: {key}")
+            logging.info(f"Processed new relevant alert with key: {key}")
+
         return processed
 
     def save_alerts(self, processed_alerts: List[Dict]):

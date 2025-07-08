@@ -1,4 +1,7 @@
 """
+# DEPRECATED: This script is currently not in use.
+# Kept for potential future reference or reactivation.
+
 meteoalarm_fetcher.py
 
 This script defines a fetcher class to retrieve alerts from Meteoalarm.
@@ -14,7 +17,6 @@ Intended to be called from a main controller script managing multiple data sourc
 import os
 import requests
 import logging
-import xml.etree.ElementTree as ET
 from pathlib import Path
 from datetime import datetime
 from utils import save_json
@@ -42,43 +44,24 @@ class MeteoalarmFetcher:
     def fetch(self):
         """Fetch Meteoalarm alerts from the configured URL and save them to a JSON file.
 
-        Handles HTTP request errors and logs status messages. Parses XML RSS feed
-        and filters alerts based on their publication date to avoid duplicates.
+        Handles HTTP request errors and logs status messages. Parses JSON response
+        and validates expected Meteoalarm keys before saving.
         """
         try:
             response = requests.get(self.url, timeout=10)
             response.raise_for_status()
-            root = ET.fromstring(response.content)
 
-            channel = root.find("channel")
-            items = channel.findall("item") if channel is not None else []
-
-            alerts = []
-            for item in items:
-                try:
-                    title = item.find("title").text
-                    description = item.find("description").text
-                    pub_date = item.find("pubDate").text
-                    link = item.find("link").text
-                    guid = item.find("guid").text
-
-                    alert = {
-                        "title": title,
-                        "description": description,
-                        "pubDate": pub_date,
-                        "link": link,
-                        "guid": guid
-                    }
-                    alerts.append(alert)
-                except Exception as e:
-                    logging.warning(f"[METEOALARM] Skipping malformed alert element: {e}")
-
-            if alerts:
-                full_output_path = Path(self.base_path) / self.output
-                save_json(alerts, full_output_path, unique_key=self.unique_key)
-                logging.info(f"[METEOALARM] Fetched {len(alerts)} alerts from {self.url} | Status: {response.status_code}")
+            content_type = response.headers.get('Content-Type', '')
+            if 'application/json' in content_type:
+                data = response.json()
+                if isinstance(data, dict) and ('features' in data or 'alerts' in data or 'geometry' in data):
+                    full_output_path = Path(self.base_path) / self.output
+                    save_json(data, full_output_path, unique_key=self.unique_key)
+                    logging.info(f"[METEOALARM] Fetched alerts from {self.url} | Status: {response.status_code}")
+                else:
+                    logging.warning(f"[METEOALARM] Unexpected JSON structure from {self.url}, not saving data.")
             else:
-                logging.info(f"[METEOALARM] No alerts found at {self.url}")
+                logging.error(f"[METEOALARM] Expected JSON response from {self.url} but got Content-Type: {content_type}")
 
         except Exception as e:
             status = getattr(e.response, 'status_code', 'N/A') if hasattr(e, 'response') else 'N/A'

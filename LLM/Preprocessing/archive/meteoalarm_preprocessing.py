@@ -1,3 +1,6 @@
+# DEPRECATED: This script is currently not in use.
+# Kept for potential future reference or reactivation.
+
 import json
 import re
 import logging
@@ -48,9 +51,40 @@ class MeteoalarmAlertPreprocessor:
         except Exception as e:
             logging.warning(f"Could not read preprocessed file: {e}")
             return set()
+        
+    def is_alert_in_spain(self, alert: Dict) -> bool:
+        """
+        Determine if the alert is for Spain.
+        Checks title for keywords and also checks region code 'ES' in link or region.
+        """
+        title = alert.get("title", "").lower()
+        if ("spain" in title) or ("españa" in title):
+            return True
+        # Also check region code ES in link if present
+        link = alert.get("link", "")
+        m = re.search(r"region=([A-Za-z]+)", link)
+        if m and m.group(1).upper() == "ES":
+            return True
+        # Additionally, check if region code ES is in the title after removing 'MeteoAlarm'
+        region = None
+        if "MeteoAlarm" in alert.get("title", ""):
+            region = alert.get("title", "").replace("MeteoAlarm", "").strip()
+            if region.upper() == "ES":
+                return True
+        return False
+
+    def is_severe(self, warning: Dict, min_level: int = 2) -> bool:
+        # Warning dict has 'level' as string "2", "3", "4"
+        try:
+            return int(warning.get("level", "0")) >= min_level
+        except Exception:
+            return False
 
     def process_alerts(self, alerts: List[Dict]) -> List[Dict]:
-        """Transform raw alerts into the standardized output format, skipping duplicates."""
+        """
+        Transform raw alerts into the standardized output format, skipping duplicates.
+        Only warnings for Spain with awareness level >= 2 are included.
+        """
         already_processed = self.load_preprocessed_keys()
         processed = []
         for alert in alerts:
@@ -60,7 +94,6 @@ class MeteoalarmAlertPreprocessor:
                 continue
 
             region = None
-            # Try to extract region from title or link
             title = alert.get("title", "")
             if "MeteoAlarm" in title:
                 region = title.replace("MeteoAlarm", "").strip()
@@ -68,11 +101,21 @@ class MeteoalarmAlertPreprocessor:
                 m = re.search(r"region=(\w+)", alert["link"])
                 if m:
                     region = m.group(1)
+
             pubdate = alert.get("pubDate")
             description = alert.get("description", "")
             warnings = self.parse_description(description)
 
+            # Check if alert is for Spain (title or region code ES)
+            if not self.is_alert_in_spain(alert):
+                logging.debug(f"Skipping alert not for Spain: {key} with region '{region}' and title '{title}'")
+                continue
+
             for w in warnings:
+                # Only process warnings with level >= 2
+                if not self.is_severe(w):
+                    logging.debug(f"Skipping warning with low severity level {w.get('level')} for alert {key}")
+                    continue
                 processed.append({
                     "source": "MeteoAlarm",
                     "alert_type": f"type_{w['type']}",

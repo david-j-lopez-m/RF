@@ -5,7 +5,6 @@ from preprocessors.aemet_preprocessing import AEMETAlertPreprocessor
 from preprocessors.firms_preprocessing import FIRMSAlertPreprocessor
 from preprocessors.gdacs_preprocessing import GDACSAlertPreprocessor
 from preprocessors.ign_alerts_preprocessing import IGNAlertPreprocessor
-from preprocessors.meteoalarm_preprocessing import MeteoalarmAlertPreprocessor
 from preprocessors.nasa_donki_preprocessing import NASADONKIAlertPreprocessor
 from preprocessors.usgs_earthquakes_preprocessing import USGSEarthquakePreprocessor
 
@@ -52,13 +51,6 @@ def run_all_preprocessing():
     # IGN Spain earthquakes Alerts
     logging.info(f"Preprocessing data from IGN")
     pre = IGNAlertPreprocessor()
-    raw_alerts = pre.load_alerts()
-    processed = pre.process_alerts(raw_alerts)
-    pre.save_alerts(processed)
-
-    # MeteoAlarm Alerts
-    logging.info(f"Preprocessing data from MeteoAlarms")
-    pre = MeteoalarmAlertPreprocessor()
     raw_alerts = pre.load_alerts()
     processed = pre.process_alerts(raw_alerts)
     pre.save_alerts(processed)

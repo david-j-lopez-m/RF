@@ -8,6 +8,7 @@ from config import get_source_config, get_source_input_path, get_source_output_p
 class GDACSAlertPreprocessor:
     """
     Preprocessor for GDACS alerts to convert them into a standard format for LLM/RAG pipelines.
+    Filters alerts to include only those relevant to Spain, specific alert types, and severity levels.
     """
 
     def __init__(self):
@@ -118,8 +119,36 @@ class GDACSAlertPreprocessor:
             logging.warning(f"Could not read preprocessed file: {e}")
             return set()
 
+    def is_alert_in_spain(self, alert: Dict) -> bool:
+        """
+        Check if 'Spain' appears in the location, title, or description fields (case-insensitive).
+        """
+        location = alert.get("location", "")
+        title = alert.get("title", "")
+        description = alert.get("description", "")
+        combined_text = f"{location} {title} {description}".lower()
+        return "spain" in combined_text
+
+    def is_relevant_type(self, alert: Dict) -> bool:
+        """
+        Keep only alert types 'flood', 'earthquake', or 'forest_fire'.
+        """
+        alert_type = alert.get("alert_type", "").lower()
+        return alert_type in {"flood", "earthquake", "forest_fire"}
+
+    def is_severe(self, alert: Dict) -> bool:
+        """
+        Return True only if the severity field is 'Orange' or 'Red'.
+        """
+        severity = alert.get("severity")
+        return severity in {"Orange", "Red"}
+
     def process_alerts(self, alerts: List[Dict]) -> List[Dict]:
-        """Transform raw alerts into the standardized output format, skipping duplicates."""
+        """
+        Transform raw alerts into the standardized output format, skipping duplicates.
+        Filters alerts to include only those relevant to Spain, specific alert types (flood, earthquake, forest_fire),
+        and severity levels (Orange or Red).
+        """
         already_processed = self.load_preprocessed_keys()
         processed = []
         for alert in alerts:
@@ -136,7 +165,7 @@ class GDACSAlertPreprocessor:
             severity = self.extract_severity(alert)
             magnitude = self.extract_magnitude(alert)
 
-            processed.append({
+            processed_alert = {
                 "source": "GDACS",
                 "alert_type": alert_type,
                 "title": title,
@@ -147,7 +176,16 @@ class GDACSAlertPreprocessor:
                 "magnitude": magnitude,
                 "link": "",  # Optionally add event-specific link if present in alert
                 self.unique_key: key
-            })
+            }
+
+            if not self.is_alert_in_spain(processed_alert):
+                continue
+            if not self.is_relevant_type(processed_alert):
+                continue
+            if not self.is_severe(processed_alert):
+                continue
+
+            processed.append(processed_alert)
             logging.info(f"Processed new alert with key: {key}")
         return processed
 

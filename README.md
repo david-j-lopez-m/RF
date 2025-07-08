@@ -1,10 +1,11 @@
 # RF: Natural Hazard Alert Intelligence
 
-This repository powers the collection and preparation of natural hazard alerts for fine-tuning a domain-specific LLM using RAG (Retrieval-Augmented Generation).
+This repository powers a pipeline for collecting, processing, and preparing natural hazard alerts, focused on Spain, for domain-specific LLM training and retrieval-augmented generation (RAG) applications.
 
 ---
 
 ## Project Structure
+
 RF/
 ├── LLM/
 │   ├── ETL/
@@ -15,47 +16,47 @@ RF/
 │   │   ├── ...                   # Preprocessing scripts, normalizers, utils
 │   └── ...                       # (Other submodules: Training, Evaluation, etc.)
 ├── data/                         # Raw and processed alert data by date/source
-├── requirements.txt              # Python dependencies (global or ETL-specific)
-├── source.md                     # Documentation of sources and design notes
+├── environment.yml              # Python dependencies (global or ETL-specific)
+├── SOURCES.md                    # Documentation of sources and design notes
 └── README.md                     # Project overview and usage
+
 ---
 
-## 🚦 Phase 1: Fine-tuning Data Preparation
-
-**Goal:** Prepare a clean, high-quality dataset of real-world alerts, focusing on significant and relevant events for scientific use cases.
+## 🚦 Workflow
 
 ### 1. Setup
 
-- For each submodule (e.g., ETL, Preprocessing), copy `config.example.json` to `config.json`
-- Add your own API keys and credentials to the relevant config (do **not** commit real keys)
-- Each submodule is designed to be run and configured independently
+- In ETL, copy `config.example.json` to `config.json` and add your own API keys (do **not** commit real keys).
+- Other submodules (Preprocessing, etc.) do not require config files with secrets.- Add your own API keys and credentials to the relevant config (do **not** commit real keys)
+- Each submodule is modular and can be run/configured independently
 
 ### 2. Data Extraction (ETL)
 
 - Run fetchers in `LLM/ETL/` to gather alerts from:
   - NASA DONKI
   - USGS
-  - AEMET
+  - AEMET 
   - GDACS
   - IGN
+  - NOAA
   - FIRMS
-  - Meteoalarm
+  - Meteoalarm *(currently disabled, see SOURCES.md)*
 - Each fetcher:
-  - Saves alerts as `.json` in `data/alertas/{YYYY-MM-DD}/`
-  - Tracks latest timestamps to avoid duplication
+  - Saves alerts as `.json` in `data/alerts/`
+  - Tracks latest timestamps and IDs to avoid duplication
 
 ### 3. Preprocessing
 
 - Scripts in `LLM/Preprocessing/`:
   - Normalize and unify fields across sources
-  - Filter irrelevant or low-impact alerts (if needed)
-  - Export a final dataset ready for vectorization/fine-tuning
+  - Filter irrelevant or low-impact alerts (e.g., earthquakes < mag 4.0)
+  - Export structured, clean `.json` files for vectorization/fine-tuning
 
 ### 4. Next Steps
 
 - Build a vector database (e.g., FAISS, Qdrant)
-- Design prompts for retrieval-augmented tasks
-- Fine-tune your LLM on the preprocessed dataset
+- Design prompts and retrieval strategies for RAG tasks
+- Fine-tune your LLM using the prepared dataset
 
 ---
 
@@ -69,13 +70,20 @@ RF/
 
 ## 🔗 Sources
 
-See [`source.md`](./source.md) for full details of each data provider, inclusion rationale, and field documentation.
+See [`SOURCES.md`](./SOURCES.md) for full details of each data provider, rationale, and current activation status.
 
 ---
 
 ## 🛠️ Requirements
 
-Install Python packages with:
+Dependencies are managed using `environment.yml`. Create the conda environment with:
 
 ```bash
-pip install -r requirements.txt
+conda env create -f environment.yml
+```
+
+Alternatively, using mamba:
+
+```bash
+mamba env create -f environment.yml
+```
