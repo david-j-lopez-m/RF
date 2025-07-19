@@ -94,7 +94,6 @@ class IGNAlertPreprocessor:
         for alert in alerts:
             key = alert.get(self.unique_key)
             if key in already_processed:
-                logging.debug(f"Skipping already processed alert: {key}")
                 continue
 
             title = alert.get("title", "Alerta IGN")
@@ -123,7 +122,7 @@ class IGNAlertPreprocessor:
                 "link": "",  # If you want to add a link field later, extract it here.
                 self.unique_key: key
             })
-            logging.info(f"Processed new alert with key: {key}")
+            #logging.info(f"Processed new alert with key: {key}")
         return processed
 
     def save_alerts(self, processed_alerts: List[Dict]):

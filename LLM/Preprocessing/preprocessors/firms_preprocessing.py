@@ -120,14 +120,12 @@ class FIRMSAlertPreprocessor:
         for alert in alerts:
             key = alert.get(self.unique_key)
             if key in already_processed:
-                logging.debug(f"Skipping already processed alert: {key}")
                 continue
 
             latitude = alert.get("latitude")
             longitude = alert.get("longitude")
             # Filter by geographic relevance (Spain & Southern Europe)
             if not self.is_in_spain(latitude, longitude):
-                logging.info(f"Skipping alert {key}: outside Spain ({latitude}, {longitude})")
                 continue
 
             brightness = alert.get("brightness")
@@ -135,7 +133,6 @@ class FIRMSAlertPreprocessor:
             frp = alert.get("frp")
             # Filter by fire relevance (confidence, FRP thresholds)
             if not self.is_relevant_fire(brightness, confidence, frp):
-                logging.info(f"Skipping alert {key}: not relevant (brightness={brightness}, confidence={confidence}, frp={frp})")
                 continue
 
             event_datetime = self.standardize_datetime(alert.get("event_datetime", ""))
@@ -162,7 +159,7 @@ class FIRMSAlertPreprocessor:
                     "daynight": alert.get("daynight")
                 }
             })
-            logging.info(f"Processed new alert with key: {key}")
+            #logging.info(f"Processed new alert with key: {key}")
         return processed
 
     def save_alerts(self, processed_alerts: List[Dict]):

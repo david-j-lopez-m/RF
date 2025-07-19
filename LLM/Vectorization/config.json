@@ -1,0 +1,8 @@
+{
+  "input_path": "data/preprocessed/",
+  "output_db_path": "data/vectors/alerts.faiss",
+  "model_name": "paraphrase-multilingual-MiniLM-L12-v2",
+  "fields_to_embed": ["title", "description"],
+  "batch_size": 32,
+  "vector_dim": 384
+}

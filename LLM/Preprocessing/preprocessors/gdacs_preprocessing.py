@@ -154,7 +154,6 @@ class GDACSAlertPreprocessor:
         for alert in alerts:
             key = alert.get(self.unique_key)
             if key in already_processed:
-                logging.debug(f"Skipping already processed alert: {key}")
                 continue
 
             standardized_dt = self.standardize_datetime(alert.get("event_datetime", ""))
@@ -186,7 +185,7 @@ class GDACSAlertPreprocessor:
                 continue
 
             processed.append(processed_alert)
-            logging.info(f"Processed new alert with key: {key}")
+            #logging.info(f"Processed new alert with key: {key}")
         return processed
 
     def save_alerts(self, processed_alerts: List[Dict]):

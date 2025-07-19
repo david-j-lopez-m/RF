@@ -1,5 +1,6 @@
 name: rf_env
 channels:
+  - pytorch
   - conda-forge
   - defaults
 dependencies:
@@ -92,7 +93,18 @@ dependencies:
   - wheel=0.45.1
   - wrapt=1.17.2
   - zstandard=0.23.0
+  - pytorch
+  - torchvision
+  - torchaudio
   - pip:
       - en-core-web-sm==3.8.0
       - es-core-news-sm==3.8.0
-prefix: /Users/davidjavierlopezmartin/opt/anaconda3/envs/rf_env
+      - chromadb
+      - langchain
+      - langchain-core
+      - langchain-text-splitters
+      - langsmith
+      - sentence-transformers
+      - faiss-cpu
+      - transformers
+      - openai

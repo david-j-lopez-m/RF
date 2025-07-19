@@ -94,7 +94,6 @@ class NOAAAlertPreprocessor:
         for alert in alerts:
             key = alert.get(self.unique_key)
             if key in already_processed:
-                logging.debug(f"Skipping already processed alert: {key}")
                 continue
 
             message = (alert.get("message") or "").replace("\r\n", " ").replace("\n", " ").strip()
@@ -118,7 +117,7 @@ class NOAAAlertPreprocessor:
                 "link": "https://www.swpc.noaa.gov/noaa-scales-explanation",
                 self.unique_key: key
             })
-            logging.info(f"Processed new alert with key: {key}")
+            #logging.info(f"Processed new alert with key: {key}")
         return processed
 
     def save_alerts(self, processed_alerts: List[Dict]):

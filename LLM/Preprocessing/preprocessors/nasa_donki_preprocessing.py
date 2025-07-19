@@ -52,7 +52,6 @@ class NASADONKIAlertPreprocessor:
         for alert in alerts:
             key = alert.get(self.unique_key)
             if key in already_processed:
-                logging.debug(f"Skipping already processed alert: {key}")
                 continue
 
             body = (alert.get("body") or "").replace("\r\n", " ").replace("\n", " ").strip()
@@ -81,7 +80,7 @@ class NASADONKIAlertPreprocessor:
                     "event_summary": alert.get("event_summary"),
                 }
             })
-            logging.info(f"Processed new alert with key: {key}")
+            #logging.info(f"Processed new alert with key: {key}")
         return processed
 
     def save_alerts(self, processed_alerts: List[Dict]):

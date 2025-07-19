@@ -89,17 +89,14 @@ class AEMETAlertPreprocessor:
         for alert in alerts:
             key = alert.get(self.unique_key)
             if key in already_processed:
-                logging.debug(f"Skipping already processed alert: {key}")
                 continue
 
             # Filtering by severity and level
             severity = (alert.get("severity") or "").capitalize()
             level = (alert.get("level") or "").lower()
             if severity not in relevant_severities:
-                logging.info(f"Skipping alert {key} due to non-relevant severity: {severity}")
                 continue
             if level not in relevant_levels:
-                logging.info(f"Skipping alert {key} due to non-relevant level: {level}")
                 continue
 
             title = alert.get("headline") or alert.get("event") or "AEMET Alert"
@@ -141,7 +138,7 @@ class AEMETAlertPreprocessor:
                 "tags": tags,
                 "extra_data": extra_data,
             })
-            logging.info(f"Processed new relevant alert with key: {key}")
+            #logging.info(f"Processed new relevant alert with key: {key}")
 
         return processed
 

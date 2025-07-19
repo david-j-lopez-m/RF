@@ -61,7 +61,6 @@ class USGSEarthquakePreprocessor:
         for alert in alerts:
             key = alert.get(self.unique_key)
             if key in already_processed:
-                logging.debug(f"Skipping already processed alert: {key}")
                 continue
 
             event_datetime = self.standardize_datetime(alert.get("event_datetime", ""))
@@ -104,7 +103,7 @@ class USGSEarthquakePreprocessor:
                     "code": code
                 }
             })
-            logging.info(f"Processed new alert with key: {key}")
+            #logging.info(f"Processed new alert with key: {key}")
         return processed
 
     def save_alerts(self, processed_alerts: List[Dict]):
