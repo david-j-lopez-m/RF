@@ -4,7 +4,7 @@ import spacy
 import os
 import logging
 from typing import List, Dict
-from config import get_source_config, get_source_input_path, get_source_output_path
+from config import get_source_config, get_source_input_path, get_source_output_path, get_serialization_rules, get_output_schema
 
 class NOAAAlertPreprocessor:
     """
@@ -20,6 +20,8 @@ class NOAAAlertPreprocessor:
         self.output_path = get_source_output_path("noaa_swpc")
         self.timestamp_format = self.cfg.get("timestamp_format", "%Y-%m-%d %H:%M:%S.%f")
         self.unique_key = self.cfg.get("unique_key", "issue_datetime")
+        self.serialization_rules = get_serialization_rules()
+        self.output_schema = get_output_schema()
         self.nlp = spacy.load("en_core_web_sm") 
         logging.info(f"Initialized NOAAAlertPreprocessor with input: {self.input_path}, output: {self.output_path}")
 
@@ -105,7 +107,7 @@ class NOAAAlertPreprocessor:
             except (TypeError, ValueError):
                 pass
 
-            processed.append({
+            processed_alert = {
                 "source": "NOAA",
                 "alert_type": "space_weather",
                 "title": message.split(".")[0] if message else "NOAA Alert",
@@ -116,8 +118,17 @@ class NOAAAlertPreprocessor:
                 "magnitude": magnitude,
                 "link": "https://www.swpc.noaa.gov/noaa-scales-explanation",
                 self.unique_key: key
-            })
-            #logging.info(f"Processed new alert with key: {key}")
+            }
+
+            # Apply serialization rules efficiently
+            for field in processed_alert.keys() & self.serialization_rules.keys():
+                if self.serialization_rules[field] == "json_string":
+                    processed_alert[field] = json.dumps(processed_alert[field], ensure_ascii=False)
+
+            # Build final alert dict with all fields in output schema
+            final_alert = {field: processed_alert.get(field, None) for field in self.output_schema}
+
+            processed.append(final_alert)
         return processed
 
     def save_alerts(self, processed_alerts: List[Dict]):

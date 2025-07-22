@@ -2,7 +2,7 @@ import json
 import os
 import logging
 from typing import List, Dict
-from config import get_source_config, get_source_input_path, get_source_output_path
+from config import get_source_config, get_source_input_path, get_source_output_path, get_serialization_rules, get_output_schema
 
 class USGSEarthquakePreprocessor:
     """
@@ -15,6 +15,8 @@ class USGSEarthquakePreprocessor:
         self.output_path = get_source_output_path("usgs_earthquakes")
         self.unique_key = self.cfg.get("unique_key", "code")
         self.timestamp_format = self.cfg.get("timestamp_format", "%Y-%m-%d %H:%M:%S UTC")
+        self.serialization_rules = get_serialization_rules()
+        self.output_schema = get_output_schema()
         logging.info(f"Initialized USGSEarthquakePreprocessor with input: {self.input_path}, output: {self.output_path}")
 
     def load_alerts(self) -> List[Dict]:
@@ -78,7 +80,7 @@ class USGSEarthquakePreprocessor:
             ids = alert.get("ids")
             code = alert.get("code")
 
-            processed.append({
+            processed_alert = {
                 "source": "USGS",
                 "alert_type": event_type,
                 "title": title if title else f"USGS {event_type.capitalize()}",
@@ -102,7 +104,17 @@ class USGSEarthquakePreprocessor:
                     "ids": ids,
                     "code": code
                 }
-            })
+            }
+
+            # Apply serialization rules efficiently
+            for field in processed_alert.keys() & self.serialization_rules.keys():
+                if self.serialization_rules[field] == "json_string":
+                    processed_alert[field] = json.dumps(processed_alert[field], ensure_ascii=False)
+
+            # Build final alert dict with all fields in output schema
+            final_alert = {field: processed_alert.get(field, None) for field in self.output_schema}
+            
+            processed.append(final_alert)
             #logging.info(f"Processed new alert with key: {key}")
         return processed
 

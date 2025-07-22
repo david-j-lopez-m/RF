@@ -2,7 +2,7 @@ import json
 import logging
 import os
 from typing import List, Dict
-from config import get_source_config, get_source_input_path, get_source_output_path
+from config import get_source_config, get_source_input_path, get_source_output_path,get_serialization_rules, get_output_schema
 from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
 
@@ -20,6 +20,8 @@ class FIRMSAlertPreprocessor:
         self.output_path = get_source_output_path("firms")
         self.unique_key = self.cfg.get("unique_key", "firms_id")
         self.timestamp_format = self.cfg.get("timestamp_format", "%Y-%m-%d %H%M")
+        self.serialization_rules = get_serialization_rules()
+        self.output_schema = get_output_schema()
         self.geolocator = Nominatim(user_agent="rf_preprocessor")
         self.reverse = RateLimiter(self.geolocator.reverse, min_delay_seconds=1)
         self.location_cache = {}  # Cache for already resolved coordinates
@@ -138,7 +140,7 @@ class FIRMSAlertPreprocessor:
             event_datetime = self.standardize_datetime(alert.get("event_datetime", ""))
             description = f"Wildfire detected by {alert.get('satellite', 'Unknown Satellite')} ({alert.get('instrument', '')}), brightness: {brightness}, confidence: {confidence}, FRP: {frp}."
 
-            processed.append({
+            processed_alert = {
                 "source": "FIRMS",
                 "alert_type": "wildfire",
                 "title": "Wildfire detection",
@@ -158,7 +160,17 @@ class FIRMSAlertPreprocessor:
                     "instrument": alert.get("instrument"),
                     "daynight": alert.get("daynight")
                 }
-            })
+            }
+
+            # Apply serialization rules efficiently
+            for field in processed_alert.keys() & self.serialization_rules.keys():
+                if self.serialization_rules[field] == "json_string":
+                    processed_alert[field] = json.dumps(processed_alert[field], ensure_ascii=False)
+
+            # Build final alert dict with all fields in output schema
+            final_alert = {field: processed_alert.get(field, None) for field in self.output_schema}
+            
+            processed.append(final_alert)
             #logging.info(f"Processed new alert with key: {key}")
         return processed
 

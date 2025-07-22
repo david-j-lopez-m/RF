@@ -38,6 +38,3 @@ def get_fields_to_embed():
 
 def get_batch_size():
     return CONFIG.get("batch_size", 32)
-
-def get_vector_dim():
-    return CONFIG.get("vector_dim", 384)

@@ -3,6 +3,8 @@ import os
 import time
 from load_data import AlertLoader
 from embedder import Embedder
+from db_chroma import ChromaDBHandler
+
     
 def run_all_vectorization():
     # Configure logging
@@ -27,6 +29,27 @@ def run_all_vectorization():
     start = time.time()
     alerts_embedded = embedder.encode(alerts)
     logging.info(f"Embedding completed in {time.time() - start:.2f} seconds")
+
+    logging.info(f"Creating Chroma db")
+    db = ChromaDBHandler()
+    collection = db.create_or_get_collection(name="alerts")
+
+    # Generate unique IDs for each alert (can be just an integer or from alert data)
+    ids = [f"alert_{i:05d}" for i in range(len(alerts))]
+    # Use the original alerts as metadata (or you can extract specific fields if you want)
+    metadatas = alerts  
+    
+    for i, alert in enumerate(alerts):
+        for k, v in alert.items():
+            if isinstance(v, (list, dict)):
+                print(f"Alert {i} ('{alert.get('title', 'no-title')}') - field '{k}' has type {type(v).__name__}: {v}")
+    db.add_alerts(alerts_embedded, ids, metadatas)
+    logging.info(f"Inserted {len(ids)} vectors into ChromaDB.")
+
+
+
+    # After creating the collection
+    db.collection.delete()  # CAREFUL: This deletes all entries in the collection!
     
 
 

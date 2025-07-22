@@ -41,6 +41,10 @@ def get_source_output_path(source_key):
     rel_path = CONFIG["sources"][source_key]["output_path_template"]
     return get_absolute_path(rel_path)
 
+def get_serialization_rules():
+    # Return the serialization rules
+    return CONFIG.get("serialization_rules", {})
+
 def get_output_schema():
     # Return the output schema for the target unified JSON
     return CONFIG.get("output_schema", {})

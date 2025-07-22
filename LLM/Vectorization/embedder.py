@@ -1,18 +1,18 @@
 import logging
 import torch
 from sentence_transformers import SentenceTransformer
+from config import get_batch_size
 
 class Embedder:
-    def __init__(self, model_name="paraphrase-multilingual-MiniLM-L12-v2", batch_size=32, device=None, logger=None):
+    def __init__(self, model_name="paraphrase-multilingual-MiniLM-L12-v2", device=None, logger=None):
         """
         Args:
             model_name (str): Name of the sentence-transformers model.
-            batch_size (int): Number of texts to embed at once.
             device (str or None): Force device ("cpu" or "mps" for Apple Silicon). If None, auto-detect.
             logger (logging.Logger or None): Optional logger for status messages.
         """
         self.logger = logger or logging.getLogger(__name__)
-        self.batch_size = batch_size
+        self.batch_size = get_batch_size()
 
         # Set device: for Apple Silicon, use "mps" if available, otherwise "cpu"
         if device:

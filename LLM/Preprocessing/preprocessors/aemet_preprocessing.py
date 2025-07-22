@@ -3,7 +3,7 @@ import spacy
 import os
 import logging
 from typing import List, Dict
-from config import get_source_config, get_source_input_path, get_source_output_path
+from config import get_source_config, get_source_input_path, get_source_output_path, get_serialization_rules, get_output_schema
 
 
 class AEMETAlertPreprocessor:
@@ -19,6 +19,8 @@ class AEMETAlertPreprocessor:
         self.input_path = get_source_input_path("aemet")
         self.output_path = get_source_output_path("aemet")
         self.unique_key = self.cfg.get("unique_key", "identifier")
+        self.serialization_rules = get_serialization_rules()
+        self.output_schema = get_output_schema()
         self.nlp = spacy.load("es_core_news_sm")
         logging.info(f"Initialized NOAAAlertPreprocessor with input: {self.input_path}, output: {self.output_path}")
 
@@ -121,7 +123,7 @@ class AEMETAlertPreprocessor:
                 "parameter": alert.get("parameter")
             }
 
-            processed.append({
+            processed_alert = {
                 "source": "AEMET",
                 "alert_type": "weather",
                 "title": title,
@@ -137,7 +139,17 @@ class AEMETAlertPreprocessor:
                 "valid_to": valid_to,
                 "tags": tags,
                 "extra_data": extra_data,
-            })
+            }
+
+            # Apply serialization rules efficiently
+            for field in processed_alert.keys() & self.serialization_rules.keys():
+                if self.serialization_rules[field] == "json_string":
+                    processed_alert[field] = json.dumps(processed_alert[field], ensure_ascii=False)
+
+            # Build final alert dict with all fields in output schema
+            final_alert = {field: processed_alert.get(field, None) for field in self.output_schema}
+            
+            processed.append(final_alert)
             #logging.info(f"Processed new relevant alert with key: {key}")
 
         return processed

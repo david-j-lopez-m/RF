@@ -3,7 +3,7 @@ import os
 import logging
 import re
 from typing import List, Dict
-from config import get_source_config, get_source_input_path, get_source_output_path
+from config import get_source_config, get_source_input_path, get_source_output_path, get_serialization_rules, get_output_schema
 
 class GDACSAlertPreprocessor:
     """
@@ -20,6 +20,8 @@ class GDACSAlertPreprocessor:
         self.output_path = get_source_output_path("gdacs")
         self.timestamp_format = self.cfg.get("timestamp_format", "%a, %d %b %Y %H:%M:%S %Z")
         self.unique_key = self.cfg.get("unique_key", "event_datetime")
+        self.serialization_rules = get_serialization_rules()
+        self.output_schema = get_output_schema()
         self.alert_type_keywords = {
             "tropical_cyclone": ["cyclone", "tropical cyclone", "hurricane", "typhoon"],
             "earthquake": ["earthquake", "seismic", "magnitude"],
@@ -183,6 +185,15 @@ class GDACSAlertPreprocessor:
                 continue
             if not self.is_severe(processed_alert):
                 continue
+            
+
+            # Apply serialization rules efficiently
+            for field in processed_alert.keys() & self.serialization_rules.keys():
+                if self.serialization_rules[field] == "json_string":
+                    processed_alert[field] = json.dumps(processed_alert[field], ensure_ascii=False)
+
+            # Build final alert dict with all fields in output schema
+            final_alert = {field: processed_alert.get(field, None) for field in self.output_schema}
 
             processed.append(processed_alert)
             #logging.info(f"Processed new alert with key: {key}")

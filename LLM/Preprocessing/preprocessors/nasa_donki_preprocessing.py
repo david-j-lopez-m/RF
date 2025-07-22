@@ -3,7 +3,7 @@ import re
 import logging
 import os
 from typing import List, Dict
-from config import get_source_config, get_source_input_path, get_source_output_path
+from config import get_source_config, get_source_input_path, get_source_output_path, get_output_schema, get_serialization_rules
 
 class NASADONKIAlertPreprocessor:
     """
@@ -16,6 +16,8 @@ class NASADONKIAlertPreprocessor:
         self.output_path = get_source_output_path("nasa_donki")
         self.unique_key = self.cfg.get("unique_key", "message_id")
         self.timestamp_format = self.cfg.get("timestamp_format", "%Y-%m-%dT%H:%MZ")
+        self.serialization_rules = get_serialization_rules()
+        self.output_schema = get_output_schema()
         logging.info(f"Initialized NASADONKIAlertPreprocessor with input: {self.input_path}, output: {self.output_path}")
 
     def load_alerts(self) -> List[Dict]:
@@ -60,7 +62,7 @@ class NASADONKIAlertPreprocessor:
             event_time = self.extract_event_time(body)
             location = self.extract_location(body)
 
-            processed.append({
+            processed_alert = {
                 "source": "NASA_DONKI",
                 "alert_type": alert.get("alert_type", "space_weather"),
                 "title": f"{alert.get('alert_type', 'DONKI Alert')}: {alert.get('message_id')}",
@@ -79,7 +81,17 @@ class NASADONKIAlertPreprocessor:
                     "links": links,
                     "event_summary": alert.get("event_summary"),
                 }
-            })
+            }
+
+
+            # Apply serialization rules efficiently
+            for field in processed_alert.keys() & self.serialization_rules.keys():
+                if self.serialization_rules[field] == "json_string":
+                    processed_alert[field] = json.dumps(processed_alert[field], ensure_ascii=False)
+
+            # Build final alert dict with all fields in output schema
+            final_alert = {field: processed_alert.get(field, None) for field in self.output_schema}
+  
             #logging.info(f"Processed new alert with key: {key}")
         return processed
 

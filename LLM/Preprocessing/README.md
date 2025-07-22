@@ -47,6 +47,21 @@ To add support for a new alert provider:
 
 *For full source list and current status, see [../SOURCES.md](../SOURCES.md).*
 
+## Vectorization Compatibility
+
+To ensure preprocessed alert data can be directly ingested by vector databases (such as ChromaDB), all preprocessors enforce:
+
+- **Scalar Metadata:**  
+  All top-level fields in each processed alert are limited to scalar types (`str`, `int`, `float`, `bool`, or `None`). Fields that are naturally lists or dicts (e.g., `tags`, `extra_data`) are automatically serialized to JSON strings according to the `serialization_rules` in `config.json`.
+
+- **Schema Enforcement:**  
+  Every output alert strictly follows the unified `output_schema` from `config.json`. Missing fields are filled with `None`, guaranteeing every alert shares the same structure.
+
+- **Centralized & Automated:**  
+  Both serialization and schema logic are defined in configuration, so changes propagate across all sources. Adding a field to `serialization_rules` or the output schema ensures all preprocessors handle it correctly.
+
+These guarantees make all preprocessed data suitable for downstream vectorization and RAG pipelines, and compatible with vector DB metadata requirements.
+
 ## Design Notes
 
 - All preprocessors should be idempotent: running multiple times on the same data does not create duplicates.

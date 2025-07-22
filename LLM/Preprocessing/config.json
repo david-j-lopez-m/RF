@@ -47,6 +47,10 @@
 
     }
   },
+  "serialization_rules": {
+    "tags": "json_string",
+    "extra_data": "json_string"
+  },
   "output_schema": {
     "source": "string",
     "alert_type": "string",
