@@ -149,7 +149,7 @@ class AEMETAlertPreprocessor:
             # Build final alert dict with all fields in output schema
             final_alert = {field: processed_alert.get(field, None) for field in self.output_schema}
             
-            processed.append(final_alert)
+            processed.append(self.sanitize_for_chroma(final_alert))
             #logging.info(f"Processed new relevant alert with key: {key}")
 
         return processed
@@ -169,3 +169,12 @@ class AEMETAlertPreprocessor:
         with open(self.output_path, "w", encoding="utf-8") as f:
             json.dump(all_alerts, f, ensure_ascii=False, indent=2)
         logging.info(f"Saved {len(processed_alerts)} new preprocessed alerts. Total: {len(all_alerts)}.")
+
+    @staticmethod
+    def sanitize_for_chroma(meta: dict) -> dict:
+        """
+        Replace None with '' (empty string) for string fields,
+        or with 0 for numeric fields if you wish.
+        If unsure, safest is to use empty string for all None.
+        """
+        return {k: ("" if v is None else v) for k, v in meta.items()}

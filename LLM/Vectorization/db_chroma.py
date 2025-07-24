@@ -1,16 +1,21 @@
 import chromadb
+import os
 from chromadb.config import Settings
 from config import get_vector_db_path
 
 class ChromaDBHandler:
     def __init__(self):
         # Settings: persist_directory controls where your DB files are stored
-        self.client = chromadb.Client(Settings(
-            persist_directory=str(get_vector_db_path())))
+        persist_dir = str(get_vector_db_path())
+        os.makedirs(persist_dir, exist_ok=True)
+        self.client = chromadb.PersistentClient(path=persist_dir)
         self.collection = None
 
     def create_or_get_collection(self, name="alerts"):
         self.collection = self.client.get_or_create_collection(name=name)
+        # Print the persist directory directly
+        print("ChromaDB persist_directory used:", str(get_vector_db_path()))
+        print("ChromaDB collections:", self.client.list_collections())
         return self.collection
 
     def add_alerts(self, embeddings, ids, metadatas):

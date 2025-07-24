@@ -44,12 +44,13 @@ def run_all_vectorization():
             if isinstance(v, (list, dict)):
                 print(f"Alert {i} ('{alert.get('title', 'no-title')}') - field '{k}' has type {type(v).__name__}: {v}")
     db.add_alerts(alerts_embedded, ids, metadatas)
+
     logging.info(f"Inserted {len(ids)} vectors into ChromaDB.")
 
 
 
     # After creating the collection
-    db.collection.delete()  # CAREFUL: This deletes all entries in the collection!
+    #db.collection.delete()  # CAREFUL: This deletes all entries in the collection!
     
 
 

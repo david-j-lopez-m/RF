@@ -1,0 +1,12 @@
+{
+"retrieval": {
+    "vector_db_path": "data/vectors",
+    "collection_name": "alerts",
+    "top_k": 5,
+    "search_distance_metric": "cosine",
+    "min_score_threshold": 0.4,
+    "default_query_language": "en",
+    "fields_to_return": ["title", "description", "event_datetime", "severity", "location"],
+    "embedder_model": "paraphrase-multilingual-MiniLM-L12-v2"
+    }
+}
