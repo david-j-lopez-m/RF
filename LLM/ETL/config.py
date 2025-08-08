@@ -40,7 +40,20 @@ def get_output_path(source_key, output_name=None):
     return get_absolute_path(rel_path) / filename
 
 def get_unique_key(source_key):
+    """
+    Get the unique key field name for a given source.
+    """
     return CONFIG[source_key].get("unique_key")
 
 def get_timestamp_format(source_key):
+    """
+    Get the timestamp format string for a given source.
+    """
     return CONFIG[source_key].get("timestamp_format")
+
+def get_incremental_flag(source_key):
+    """
+    Retrieve the 'incremental' boolean flag from config.json.
+    Returns True if not present.
+    """
+    return CONFIG[source_key].get("incremental", True)

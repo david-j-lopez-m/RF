@@ -38,3 +38,10 @@ def get_fields_to_embed():
 
 def get_batch_size():
     return CONFIG.get("batch_size", 32)
+
+def get_incremental_flag():
+    """
+    Retrieve the 'incremental' boolean flag from config.json.
+    Returns False if not present.
+    """
+    return CONFIG.get("incremental", True)

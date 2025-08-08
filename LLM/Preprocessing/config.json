@@ -5,46 +5,51 @@
     "noaa_swpc": {
       "input_path_template": "data/alerts/noaa_alerts.json",
       "output_path_template": "data/preprocessed/noaa_preprocessed.json",
-      "unique_key": "product_id"
+      "unique_key": "product_id",
+      "incremental": true
     },
     "nasa_donki": {
       "input_path_template": "data/alerts/nasa_donki_alerts.json",
       "output_path_template": "data/preprocessed/nasa_donki_preprocessed.json",
-      "unique_key": "firms_id"
+      "unique_key": "firms_id",
+      "incremental": true
     },
     "usgs_earthquakes": {
       "input_path_template": "data/alerts/usgs_earthquakes.json",
       "output_path_template": "data/preprocessed/usgs_preprocessed.json",
-      "unique_key": "code"
-
+      "unique_key": "code",
+      "incremental": true
     },
     "aemet": {
       "input_path_template": "data/alerts/aemet_alerts.json",
       "output_path_template": "data/preprocessed/aemet_preprocessed.json",
-      "unique_key": "identifier"
+      "unique_key": "identifier",
+      "incremental": true
 
     },
     "ign": {
       "input_path_template": "data/alerts/ign_alerts.json",
       "output_path_template": "data/preprocessed/ign_preprocessed.json",
-      "unique_key": "event_datetime"
+      "unique_key": "event_datetime",
+      "incremental": true
     },
     "meteoalarm": {
       "input_path_template": "data/alerts/meteoalarm_alerts.json",
       "output_path_template": "data/preprocessed/meteoalarm_preprocessed.json",
-      "unique_key": "guid"
-
+      "unique_key": "guid",
+      "incremental": true
     },
     "gdacs": {
       "input_path_template": "data/alerts/gdacs_alerts.json",
       "output_path_template": "data/preprocessed/gdacs_preprocessed.json",
-      "unique_key": "event_datetime"
+      "unique_key": "event_datetime",
+      "incremental": true
     },
     "firms": {
       "input_path_template": "data/alerts/firms_modis_nrt.json",
       "output_path_template": "data/preprocessed/firms_preprocessed.json",
-      "unique_key": "firms_id"
-
+      "unique_key": "firms_id",
+      "incremental": true
     }
   },
   "serialization_rules": {

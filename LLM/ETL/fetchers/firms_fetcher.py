@@ -39,7 +39,7 @@ class FIRMSFetcher:
         self.timestamp_format = get_timestamp_format("firms")
         self.unique_key = self.config.get("unique_key", "identifier")
 
-    def fetch(self):
+    def fetch(self, incremental: bool = True):
         """
         Fetch FIRMS wildfire alerts from CSV, parse, and save as JSON.
         All alerts from the current fetch are stored.
@@ -70,6 +70,15 @@ class FIRMSFetcher:
                 full_output_path = Path(self.base_path) / self.output
                 save_json(alerts, full_output_path, unique_key=self.unique_key)
                 logging.info(f"[FIRMS] Fetched and saved {len(alerts)} wildfire alerts from {url}")
+
+                if incremental:
+                    # Also save (overwrite) an incremental JSON of new alerts
+                    incremental_dir = Path(self.config.get("incremental_output_dir", self.base_path)) / "incremental"
+                    incremental_dir.mkdir(parents=True, exist_ok=True)
+                    # Use the same output filename to overwrite previous incremental file
+                    inc_file = incremental_dir / self.output
+                    save_json(alerts, inc_file)
+                    logging.info(f"[FIRMS] Overwrote incremental alerts file {inc_file.name}")
             else:
                 logging.info(f"[FIRMS] No wildfire alerts to save from {url}")
 

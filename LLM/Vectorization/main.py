@@ -4,6 +4,8 @@ import time
 from load_data import AlertLoader
 from embedder import Embedder
 from db_chroma import ChromaDBHandler
+from config import get_incremental_flag 
+
 
     
 def run_all_vectorization():
@@ -43,7 +45,8 @@ def run_all_vectorization():
         for k, v in alert.items():
             if isinstance(v, (list, dict)):
                 print(f"Alert {i} ('{alert.get('title', 'no-title')}') - field '{k}' has type {type(v).__name__}: {v}")
-    db.add_alerts(alerts_embedded, ids, metadatas)
+    incremental = get_incremental_flag()
+    db.add_alerts(alerts_embedded, ids, metadatas, incremental=incremental)
 
     logging.info(f"Inserted {len(ids)} vectors into ChromaDB.")
 
@@ -56,10 +59,3 @@ def run_all_vectorization():
 
 if __name__ == "__main__":
     run_all_vectorization()
-
-    
-    # TODO: Add embedding step here
-    
-    # TODO: Insert embeddings into the database here
-    
-    # TODO: Further processing steps here

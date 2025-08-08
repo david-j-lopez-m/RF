@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+from pathlib import Path
 from typing import List, Dict
 from config import get_source_config, get_source_input_path, get_source_output_path,get_serialization_rules, get_output_schema
 from geopy.geocoders import Nominatim
@@ -65,19 +66,37 @@ class FIRMSAlertPreprocessor:
             logging.warning(f"Failed to standardize datetime: {dt_string} | {e}")
             return dt_string
 
-    def load_alerts(self) -> List[Dict]:
+    def load_alerts(self, incremental: bool = True) -> List[Dict]:
         """Load raw FIRMS alerts from input JSON file."""
-        try:
-            with open(self.input_path, "r", encoding="utf-8") as f:
-                alerts = json.load(f)
-            logging.info(f"Loaded {len(alerts)} alerts from {self.input_path}")
-            return alerts
-        except FileNotFoundError:
-            logging.error(f"Input file not found: {self.input_path}")
-            return []
-        except Exception as e:
-            logging.error(f"Failed to load input alerts: {e}")
-            return []
+        # If incremental is requested, attempt to load only the latest incremental file if available
+        if incremental:
+            incremental_dir = Path(self.input_path).parent / "incremental"
+            try:
+                if incremental_dir.exists():
+                    json_files = sorted(incremental_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+                    if json_files:
+                        latest = json_files[0]
+                        with open(latest, "r", encoding="utf-8") as f:
+                            alerts = json.load(f)
+                        logging.info(f"Loaded {len(alerts)} incremental alerts from {latest}")
+                        return alerts
+                logging.info("No incremental file found; skipping load because incremental=True.")
+                return []
+            except Exception as e:
+                logging.warning(f"Failed to load incremental alerts: {e}")
+                return []
+        else:
+            try:
+                with open(self.input_path, "r", encoding="utf-8") as f:
+                    alerts = json.load(f)
+                logging.info(f"Loaded {len(alerts)} alerts from {self.input_path}")
+                return alerts
+            except FileNotFoundError:
+                logging.error(f"Input file not found: {self.input_path}")
+                return []
+            except Exception as e:
+                logging.error(f"Failed to load input alerts: {e}")
+                return []
 
     def load_preprocessed_keys(self) -> set:
         """Load unique_keys from previous output, if exists."""

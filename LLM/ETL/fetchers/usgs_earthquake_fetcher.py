@@ -36,7 +36,7 @@ class USGSEarthquakeFetcher:
         self.timestamp_format = get_timestamp_format(source_key)
         self.unique_key = self.config.get("unique_key")
 
-    def fetch(self):
+    def fetch(self, incremental: bool = True):
         """Fetch USGS earthquake alerts and save structured entries to a JSON file."""
         try:
             r = requests.get(self.url, timeout=10)
@@ -59,6 +59,16 @@ class USGSEarthquakeFetcher:
                 logging.info(
                     f"[USGS] Fetched and saved {len(alerts)} structured alerts from {self.url} | Status: {status_code}"
                 )
+
+                if incremental:
+                    # Also save (overwrite) an incremental JSON of new alerts
+                    incremental_dir = Path(self.config.get("incremental_output_dir", self.base_path)) / "incremental"
+                    incremental_dir.mkdir(parents=True, exist_ok=True)
+                    # Use the same output filename to overwrite previous incremental file
+                    inc_file = incremental_dir / self.output
+                    save_json(alerts, inc_file)
+                    logging.info(f"[USGS] Overwrote incremental alerts file {inc_file.name}")
+
             else:
                 logging.info(f"[USGS] No alerts to save from {self.url}")
         except Exception as e:

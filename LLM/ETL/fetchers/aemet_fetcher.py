@@ -47,8 +47,12 @@ class AEMETFetcher:
         self.timestamp_format = get_timestamp_format(source_key)
         self.unique_key = self.config.get("unique_key", "identifier")
         
-    def fetch(self):
-        """Fetch AEMET alerts using the provided API token and store them locally."""
+    def fetch(self, incremental: bool = True):
+        """Fetch AEMET alerts using the provided API token and store them locally.
+        
+        Args:
+            incremental (bool): If True, also save an incremental JSON file of new alerts.
+        """
         try:
             # First request to get the actual data URL
             headers = {"accept": "application/json", "api_key": self.token}
@@ -88,6 +92,15 @@ class AEMETFetcher:
                 full_output_path = Path(self.base_path) / self.output
                 save_json(new_alerts, full_output_path, unique_key=self.unique_key)
                 logging.info(f"[AEMET] Saved {len(new_alerts)} alerts to {self.output}")
+
+                if incremental:
+                    # Also save (overwrite) an incremental JSON of new alerts
+                    incremental_dir = Path(self.config.get("incremental_output_dir", self.base_path)) / "incremental"
+                    incremental_dir.mkdir(parents=True, exist_ok=True)
+                    # Use the same output filename to overwrite previous incremental file
+                    inc_file = incremental_dir / self.output
+                    save_json(new_alerts, inc_file)
+                    logging.info(f"[AEMET] Overwrote incremental alerts file {inc_file.name}")
             else:
                 logging.info("[AEMET] No new alerts to save.")
 

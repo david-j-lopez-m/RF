@@ -52,3 +52,10 @@ def get_output_schema():
 def get_field_format(field):
     # Get formatting string for a specific field, if defined
     return CONFIG.get("field_formats", {}).get(field, None)
+
+def get_incremental_flag(source_key):
+    """
+    Retrieve the 'incremental' boolean flag from config.json.
+    Returns False if not present.
+    """
+    return CONFIG["sources"].get(source_key, {}).get("incremental", True)

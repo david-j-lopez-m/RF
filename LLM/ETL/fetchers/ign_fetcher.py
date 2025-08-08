@@ -39,7 +39,7 @@ class IGNFetcher:
         self.timestamp_format = get_timestamp_format(source_key)
         self.unique_key = self.config.get("unique_key")
 
-    def fetch(self):
+    def fetch(self, incremental: bool = True):
         """
         Fetch IGN alerts from the configured URL and save them to a JSON file.
 
@@ -87,6 +87,16 @@ class IGNFetcher:
                 full_output_path = Path(self.base_path) / self.output
                 save_json(alerts, full_output_path, unique_key=self.unique_key)
                 logging.info(f"[IGN] Fetched {len(alerts)} alerts from {self.url} | Status: {response.status_code}")
+
+                if incremental:
+                    # Also save (overwrite) an incremental JSON of new alerts
+                    incremental_dir = Path(self.config.get("incremental_output_dir", self.base_path)) / "incremental"
+                    incremental_dir.mkdir(parents=True, exist_ok=True)
+                    # Use the same output filename to overwrite previous incremental file
+                    inc_file = incremental_dir / self.output
+                    save_json(alerts, inc_file)
+                    logging.info(f"[IGN] Overwrote incremental alerts file {inc_file.name}")
+
             else:
                 logging.info(f"[IGN] No alerts found to save from {self.url}")
 
